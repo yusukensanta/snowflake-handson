@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Insert/refresh prev/next + "7-day map" navigation at the top and bottom of every guide (EN and JA).
 
 Reading order is the learning order (05 transform comes before 04 governance), not the file numbering.
