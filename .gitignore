@@ -1,0 +1,30 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+# Secrets and local config (never commit)
+*.p8
+*.pem
+*.key
+connections.toml
+config.toml
+.env
+.env.*
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# Generated / scratch
+data/out/
+.progress/
+.superpowers/
+tags.auto.tfvars.json
+*.tfplan
+.terraform.tfstate.lock.info
+*.auto.tfvars.json

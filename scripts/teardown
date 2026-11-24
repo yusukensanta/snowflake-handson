@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Destroy everything the lab created. DESTRUCTIVE: requires --yes (or --dry-run to preview).
+# Order: suspend compute -> terraform destroy -> drop objects Terraform does not own.
+# Usage: scripts/teardown [--dry-run] [--yes] [--connection NAME]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+conn="handson_tf"; yes=0
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in --yes) yes=1; shift ;; --connection) conn="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+done
+if [ "$yes" != "1" ] && [ "$DRY_RUN" != "1" ]; then
+  log_err "teardown deletes data and roles. Re-run with --yes (or --dry-run to preview)."; exit 1
+fi
+run "$here/cost-guard" --suspend-all --connection "$conn"
+admin="handson_admin"   # owns the account monitor, user and role; TF_ADMIN cannot drop itself
+run terraform -chdir="$here/../terraform/envs/handson" destroy -auto-approve
+for stmt in "DROP DATABASE IF EXISTS HANBIT_OPS" "DROP RESOURCE MONITOR IF EXISTS HANDSON_ACCOUNT_MONITOR" \
+            "DROP USER IF EXISTS TERRAFORM" "DROP ROLE IF EXISTS TF_ADMIN"; do
+  run snow sql -c "$admin" -q "$stmt"
+done
+log_info "done. Also delete ~/.snowflake/*.p8 keys you generated, and cancel the trial if finished."

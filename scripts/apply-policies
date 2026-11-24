@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Attach governance policies to tables (tables are created outside Terraform).
+# Idempotent: each attachment is skipped when POLICY_REFERENCES already shows it.
+# Usage: scripts/apply-policies [--dry-run] [--connection NAME] [--layer HANBIT_CURATED]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+conn="handson_tf"; layer="HANBIT_CURATED"
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in --connection) conn="$2"; shift 2 ;; --layer) layer="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+done
+run snow sql -c "$conn" -f "$here/../sql/policies_attach.sql"
+
+attached() { # table policy -> prints count
+  [ "$DRY_RUN" = "1" ] && { echo 0; return; }
+  snow sql -c "$conn" --format json -q "SELECT COUNT(*) AS N FROM TABLE($layer.INFORMATION_SCHEMA.POLICY_REFERENCES(REF_ENTITY_NAME => '$1', REF_ENTITY_DOMAIN => 'TABLE')) WHERE POLICY_NAME = '$2'" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['N'])"
+}
+attach() { # table policy sql
+  if [ "$(attached "$1" "$2")" = "0" ]; then run snow sql -c "$conn" -q "$3"; else log_info "$2 already on $1"; fi
+}
+for d in UNDERWRITING CLAIMS LENDING FINANCE MARKETING; do
+  t="$layer.$d.$d"
+  attach "$t" RAP_REGION "ALTER TABLE $t ADD ROW ACCESS POLICY HANBIT_GOV.POLICIES.RAP_REGION ON (REGION)"
+done
+m="$layer.MARKETING.MARKETING"
+attach "$m" AGG_MIN_GROUP_5 "ALTER TABLE $m SET AGGREGATION POLICY HANBIT_GOV.POLICIES.AGG_MIN_GROUP_5"
+attach "$m" PROJ_ID_JOINABLE "ALTER TABLE $m MODIFY COLUMN CUSTOMER_ID SET PROJECTION POLICY HANBIT_GOV.POLICIES.PROJ_ID_JOINABLE"

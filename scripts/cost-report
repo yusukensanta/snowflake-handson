@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Credits used (last 35 days, ACCOUNT_USAGE lags up to ~3h) vs plan 53 / warn 70 / hard stop 80.
+# Exit 2 at CRITICAL/STOP. Usage: scripts/cost-report [--connection NAME] [--dry-run]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+cd "$here/.."
+if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would query METERING_HISTORY and print the report"; exit 0; fi
+exec uv run python -m sfops.cost "${REST_ARGS[@]+"${REST_ARGS[@]}"}"

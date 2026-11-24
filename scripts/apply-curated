@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Build the CURATED layer (Dynamic Tables) and attach data-quality functions. Idempotent (IF NOT EXISTS).
+# Usage: scripts/apply-curated [--dry-run] [--connection NAME] [--no-dmf]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+conn="handson_tf"; dmf=1
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in --connection) conn="$2"; shift 2 ;; --no-dmf) dmf=0; shift ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+done
+run snow sql -c "$conn" -f "$here/../sql/curated.sql"
+[ "$dmf" = "1" ] && run snow sql -c "$conn" -f "$here/../sql/dmf.sql"
+log_info "next: scripts/apply-policies, then scripts/access-matrix. When done for the day: scripts/cost-guard --suspend-all"

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# One-time bootstrap, run by the human admin (MFA). Creates, in order:
+#   1) account-level resource monitor (hard stop)   -> guardrails BEFORE any workload
+#   2) role TF_ADMIN + service user TERRAFORM (key-pair only, no password)
+#   3) an encrypted private key under ~/.snowflake/ and a [handson_tf] connection entry
+# Idempotent. Usage: scripts/bootstrap [--dry-run] [--connection NAME] [--quota CREDITS]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+conn="handson_admin"; quota=80
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in --connection) conn="$2"; shift 2 ;; --quota) quota="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+done
+case "$quota" in ''|*[!0-9]*) log_err "--quota must be a whole number of credits"; exit 64 ;; esac
+sf="$HOME/.snowflake"; key="$sf/handson_tf_key.p8"; pub="$sf/handson_tf_key.pub"; cfg="$sf/connections.toml"
+sql() { run snow sql -c "$conn" -q "$1"; }
+
+sql "CREATE RESOURCE MONITOR IF NOT EXISTS HANDSON_ACCOUNT_MONITOR WITH CREDIT_QUOTA = $quota FREQUENCY = MONTHLY START_TIMESTAMP = IMMEDIATELY TRIGGERS ON 50 PERCENT DO NOTIFY ON 75 PERCENT DO NOTIFY ON 90 PERCENT DO NOTIFY ON 95 PERCENT DO SUSPEND ON 100 PERCENT DO SUSPEND_IMMEDIATE"
+sql "ALTER ACCOUNT SET RESOURCE_MONITOR = HANDSON_ACCOUNT_MONITOR"
+sql "CREATE ROLE IF NOT EXISTS TF_ADMIN"
+for p in "CREATE ROLE" "CREATE DATABASE" "CREATE WAREHOUSE" "CREATE INTEGRATION" "CREATE RESOURCE MONITOR" \
+         "CREATE NETWORK POLICY" "CREATE USER" "MANAGE GRANTS" "APPLY MASKING POLICY" "APPLY ROW ACCESS POLICY" \
+         "APPLY TAG" "APPLY AGGREGATION POLICY" "APPLY PROJECTION POLICY" "ATTACH POLICY" "EXECUTE ALERT" "EXECUTE DATA METRIC FUNCTION" "APPLY AUTHENTICATION POLICY" "APPLY SESSION POLICY"; do
+  sql "GRANT $p ON ACCOUNT TO ROLE TF_ADMIN"
+done
+sql "GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE TF_ADMIN"
+sql "GRANT DATABASE ROLE SNOWFLAKE.DATA_METRIC_USER TO ROLE TF_ADMIN"
+
+if [ ! -f "$key" ]; then
+  log_info "generating encrypted key pair (you will be asked for a passphrase; it is never stored)"
+  run mkdir -p "$sf"; run chmod 700 "$sf"
+  if [ "$DRY_RUN" != "1" ]; then
+    (umask 077; openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -out "$key")
+    openssl pkey -in "$key" -pubout -out "$pub"
+  else log_info "[dry-run] would create $key and $pub"; fi
+fi
+pubkey="<public key body>"
+[ -f "$pub" ] && pubkey="$(grep -v -- '-----' "$pub" | tr -d '\n')"
+sql "CREATE USER IF NOT EXISTS TERRAFORM TYPE = SERVICE DEFAULT_ROLE = TF_ADMIN COMMENT = 'Terraform service identity (key-pair only)'"
+sql "ALTER USER TERRAFORM SET RSA_PUBLIC_KEY = '$pubkey'"
+sql "GRANT ROLE TF_ADMIN TO USER TERRAFORM"
+
+if [ "$DRY_RUN" != "1" ] && ! grep -q '^\[handson_tf\]' "$cfg" 2>/dev/null; then
+  acct="$(snow connection list --format json 2>/dev/null | python3 -c "import sys,json; print(next(c['parameters']['account'] for c in json.load(sys.stdin) if c['connection_name']=='$conn'))")"
+  (umask 077; printf '\n[handson_tf]\naccount = "%s"\nuser = "TERRAFORM"\nauthenticator = "SNOWFLAKE_JWT"\nprivate_key_file = "%s"\nrole = "TF_ADMIN"\nwarehouse = "TRANSFORM_WH"\n' "$acct" "$key" >> "$cfg")
+  log_info "added [handson_tf] to $cfg (set PRIVATE_KEY_PASSPHRASE in your shell when running terraform/snow)"
+fi
+log_info "done. Next: scripts/cost-guard --status, then terraform -chdir=terraform/envs/handson init"

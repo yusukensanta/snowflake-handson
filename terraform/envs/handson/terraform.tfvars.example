@@ -1,0 +1,2 @@
+# Copy to terraform.tfvars (git-ignored). Values here are not secrets; still keep the real file local.
+snowflake_profile = "handson_tf"

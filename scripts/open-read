@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Read the Iceberg table from outside Snowflake via the Horizon Iceberg REST catalog (PyIceberg).
+# Needs a programmatic access token in $SNOWFLAKE_PAT (never commit it) and SNOWFLAKE_ACCOUNT_URL.
+# Usage: scripts/open-read [--dry-run]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+if [ "$DRY_RUN" = "1" ]; then
+  log_info "[dry-run] would read HANBIT_MARTS.LAKE.CLAIMS_FACT via PyIceberg against \${SNOWFLAKE_ACCOUNT_URL}/polaris/api/catalog"
+  exit 0
+fi
+: "${SNOWFLAKE_PAT:?set SNOWFLAKE_PAT (see guide 05)}" "${SNOWFLAKE_ACCOUNT_URL:?set SNOWFLAKE_ACCOUNT_URL, e.g. https://<account>.snowflakecomputing.com}"
+exec uv run --with "pyiceberg[pyarrow]" python - <<'PY'
+import os
+from pyiceberg.catalog import load_catalog
+cat = load_catalog("horizon", **{
+    "type": "rest",
+    "uri": os.environ["SNOWFLAKE_ACCOUNT_URL"].rstrip("/") + "/polaris/api/catalog",
+    "token": os.environ["SNOWFLAKE_PAT"],
+    "warehouse": "HANBIT_MARTS",
+})
+tbl = cat.load_table("LAKE.CLAIMS_FACT")
+print(tbl.scan(limit=5).to_arrow().to_pandas() if False else tbl.scan(limit=5).to_arrow())
+PY

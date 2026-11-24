@@ -1,0 +1,23 @@
+# Import lab. Copy to terraform/envs/handson/lab.tf AFTER creating both objects by hand in Snowsight:
+#   CREATE ROLE LAB_IMPORT_ROLE;  CREATE WAREHOUSE LAB_IMPORT_WH WAREHOUSE_SIZE = XSMALL AUTO_SUSPEND = 60;
+# Then: terraform plan  (shows 2 imports, 0 changes if your config matches), terraform apply.
+
+import {
+  to = snowflake_account_role.lab
+  id = "LAB_IMPORT_ROLE"
+}
+
+resource "snowflake_account_role" "lab" {
+  name = "LAB_IMPORT_ROLE"
+}
+
+import {
+  to = snowflake_warehouse.lab
+  id = "LAB_IMPORT_WH"
+}
+
+resource "snowflake_warehouse" "lab" {
+  name           = "LAB_IMPORT_WH"
+  warehouse_size = "XSMALL"
+  auto_suspend   = 60
+}

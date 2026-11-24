@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Run the read-only "Verify" check for a guide step and record it in .progress/state.json (git-ignored).
+# Usage: scripts/verify-step <01|02|03|04|05|06|07> [--connection NAME] [--dry-run]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+conn="handson_tf"; step=""
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in --connection) conn="$2"; shift 2 ;; *) step="$1"; shift ;; esac
+done
+case "$step" in
+  01) q="SELECT CURRENT_ACCOUNT_NAME() IS NOT NULL" ;;
+  02) q="SHOW ROLES LIKE 'CLAIMS_ADJUSTER'" ;;
+  03) q="SELECT COUNT(*) > 0 FROM HANBIT_RAW.CLAIMS.CLAIMS" ;;
+  04) q="SHOW MASKING POLICIES IN SCHEMA HANBIT_GOV.POLICIES" ;;
+  05) q="SELECT COUNT(*) > 0 FROM HANBIT_CURATED.CLAIMS.CLAIMS" ;;
+  06) q="SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS" ;;
+  07) q="SELECT COUNT(*) >= 0 FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE" ;;
+  *) log_err "usage: verify-step <01..07>"; exit 64 ;;
+esac
+run snow sql -c "$conn" -q "$q"
+[ "$DRY_RUN" = "1" ] && exit 0
+mkdir -p "$here/../.progress"
+python3 - "$here/../.progress/state.json" "$step" <<'PY'
+import json, sys, datetime, pathlib
+p = pathlib.Path(sys.argv[1])
+s = json.loads(p.read_text()) if p.exists() else {}
+s[sys.argv[2]] = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+p.write_text(json.dumps(s, indent=2))
+PY
+log_info "step $step verified; recorded in .progress/state.json"

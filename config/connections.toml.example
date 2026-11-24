@@ -1,0 +1,10 @@
+# Copy to ~/.snowflake/connections.toml (chmod 600). NEVER commit the real file.
+# Find <org>-<account> in Snowsight: your name (bottom left) > Account > View account details.
+
+[handson_admin]            # used once for bootstrap and preflight, with MFA in the browser
+account = "<org>-<account>"
+user = "<your-user>"
+authenticator = "EXTERNALBROWSER"
+role = "ACCOUNTADMIN"
+
+# [handson_tf] is written by scripts/bootstrap (key-pair, role TF_ADMIN). Do not add passwords here.

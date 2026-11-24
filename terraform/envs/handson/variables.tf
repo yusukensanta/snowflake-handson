@@ -1,0 +1,47 @@
+variable "snowflake_profile" {
+  description = "connections.toml profile written by scripts/bootstrap."
+  type        = string
+  default     = "handson_tf"
+}
+
+variable "preview_features" {
+  description = "Provider preview features to enable (e.g. snowflake_iceberg_table_resource)."
+  type        = list(string)
+  default     = []
+}
+
+variable "grant_personas_to_user" {
+  description = "Your Snowflake user name, to test personas with USE ROLE. Keep in the git-ignored terraform.tfvars."
+  type        = string
+  default     = ""
+}
+
+variable "column_sensitivity" {
+  description = "Loaded from tags.auto.tfvars.json produced by scripts/gen-data --emit-tag-map."
+  type        = map(string)
+  default     = {}
+}
+
+variable "apply_column_tags" {
+  description = "Set true only after scripts/load-batch created the RAW tables."
+  type        = bool
+  default     = false
+}
+
+variable "allowed_ips" {
+  description = "Your public IP as CIDR, e.g. [\"203.0.113.7/32\"]. Git-ignored terraform.tfvars only."
+  type        = list(string)
+  default     = []
+}
+
+variable "enforce_account_policies" {
+  description = "Attach network and human auth/session policies to the account. Verify IP and MFA first."
+  type        = bool
+  default     = false
+}
+
+variable "alert_email" {
+  description = "Verified email for alerts; empty disables alerts."
+  type        = string
+  default     = ""
+}

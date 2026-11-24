@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Streaming path: Snowpipe Streaming (high-performance SDK) into HANBIT_RAW.<DOMAIN>.<DOMAIN>_STREAM.
+# Usage: scripts/stream-load --domain claims [--file data/out/claims.csv.gz] [--connection NAME] [--dry-run]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+domain=""; file=""; conn="handson_tf"
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in --domain) domain="$2"; shift 2 ;; --file) file="$2"; shift 2 ;; --connection) conn="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+done
+[ -n "$domain" ] || { log_err "--domain is required"; exit 64; }
+file="${file:-$here/../data/out/$domain.csv.gz}"
+cd "$here/.."
+run uv run --extra streaming python -m sfops.streaming --connection "$conn" --domain "$domain" --file "$file"

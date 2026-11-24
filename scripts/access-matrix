@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Run the persona access matrix against the live account. Exit 1 if any case fails.
+# Usage: scripts/access-matrix [--connection NAME] [--stretch] [--matrix FILE] [--dry-run]
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+cd "$here/.."
+if [ "$DRY_RUN" = "1" ]; then
+  uv run python -c "
+from sfops.matrix import load_matrix
+cases = load_matrix('sql/matrix/access-matrix.yaml', include_stretch=True)
+print(f'[dry-run] {len(cases)} cases parsed OK; no connection made')"
+  exit 0
+fi
+exec uv run python -m sfops.matrix "${REST_ARGS[@]+"${REST_ARGS[@]}"}"

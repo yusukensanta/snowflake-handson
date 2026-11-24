@@ -1,0 +1,34 @@
+# Persona x object x expectation. Run: scripts/access-matrix [--stretch]
+# expect: visible | masked | hashed | denied | rows | regions.  value: expected count / region list.
+# Needs the personas granted to your user (terraform var grant_personas_to_user) and CURATED tables.
+cases:
+  # --- claims adjuster: health data yes, PII masked, own region only, nothing from other domains
+  - {role: CLAIMS_ADJUSTER, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: visible}
+  - {role: CLAIMS_ADJUSTER, object: HANBIT_CURATED.CLAIMS.CLAIMS, expect: regions, value: [Seoul]}
+  - {role: CLAIMS_ADJUSTER, object: HANBIT_CURATED.UNDERWRITING.UNDERWRITING, column: CUSTOMER_NAME, expect: denied}
+  - {role: CLAIMS_ADJUSTER, object: HANBIT_CURATED.LENDING.LENDING, column: CREDIT_SCORE, expect: denied}
+  # --- underwriter: policy PII visible, no health data
+  - {role: UNDERWRITER, object: HANBIT_CURATED.UNDERWRITING.UNDERWRITING, column: RRN, expect: visible}
+  - {role: UNDERWRITER, object: HANBIT_CURATED.UNDERWRITING.UNDERWRITING, column: CUSTOMER_NAME, expect: visible}
+  - {role: UNDERWRITER, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: denied}
+  - {role: UNDERWRITER, object: HANBIT_CURATED.UNDERWRITING.UNDERWRITING, expect: regions, value: [Seoul, Busan, Incheon, Daegu, Daejeon, Gwangju, Ulsan, Jeju]}
+  # --- loan officer: credit data yes, own branch region only, no health data
+  - {role: LOAN_OFFICER, object: HANBIT_CURATED.LENDING.LENDING, column: CREDIT_SCORE, expect: visible}
+  - {role: LOAN_OFFICER, object: HANBIT_CURATED.LENDING.LENDING, column: ANNUAL_INCOME, expect: visible}
+  - {role: LOAN_OFFICER, object: HANBIT_CURATED.LENDING.LENDING, expect: regions, value: [Busan]}
+  - {role: LOAN_OFFICER, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: denied}
+  # --- marketing analyst: low-sensitivity only; aggregation + projection policies
+  - {role: MARKETING_ANALYST, object: HANBIT_CURATED.MARKETING.MARKETING, column: AGE_BAND, expect: denied}   # row-level select blocked by aggregation policy
+  - {role: MARKETING_ANALYST, object: HANBIT_CURATED.MARKETING.MARKETING, column: CUSTOMER_ID, expect: denied}  # projection policy
+  - {role: MARKETING_ANALYST, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: denied}
+  # --- auditor: no data roles at all
+  - {role: AUDITOR, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: denied, warehouse: MONITOR_WH}
+  # --- platform engineer: builds pipelines but never sees sensitive values
+  - {role: DATA_PLATFORM_ENGINEER, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: masked, warehouse: TRANSFORM_WH}
+  - {role: DATA_PLATFORM_ENGINEER, object: HANBIT_CURATED.UNDERWRITING.UNDERWRITING, column: RRN, expect: masked, warehouse: TRANSFORM_WH}
+  - {role: DATA_PLATFORM_ENGINEER, object: HANBIT_CURATED.LENDING.LENDING, column: CREDIT_SCORE, expect: masked, warehouse: TRANSFORM_WH}
+  # --- stretch: cross-domain entitlements
+  - {role: FINANCE_CONTROLLER, object: HANBIT_CURATED.FINANCE.FINANCE, column: AMOUNT, expect: visible, stretch: true}
+  - {role: FINANCE_CONTROLLER, object: HANBIT_CURATED.LENDING.LENDING, column: CREDIT_SCORE, expect: denied, stretch: true}
+  - {role: FRAUD_ANALYST, object: HANBIT_CURATED.RISK_FRAUD.RISK_FRAUD, column: SCORE, expect: visible, stretch: true}
+  - {role: FRAUD_ANALYST, object: HANBIT_CURATED.CLAIMS.CLAIMS, column: DIAGNOSIS_CODE, expect: denied, stretch: true}

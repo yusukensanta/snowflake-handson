@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Install terraform, SnowCLI, shellcheck and gitleaks. Idempotent; --dry-run prints the plan.
+set -eu
+# shellcheck source=lib/common.sh
+. "$(dirname "$0")/lib/common.sh"
+parse_common_flags "$@"
+require_cmd mise || exit 1
+require_cmd uv || exit 1
+for tool in terraform shellcheck gitleaks; do
+  if command -v "$tool" >/dev/null 2>&1; then log_info "$tool already installed"
+  else run mise use --global "$tool@latest"; fi
+done
+if command -v snow >/dev/null 2>&1; then log_info "snow already installed"
+else run uv tool install snowflake-cli; fi
