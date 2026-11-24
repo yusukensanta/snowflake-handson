@@ -1,5 +1,5 @@
 variable "snowflake_profile" {
-  description = "connections.toml profile written by scripts/bootstrap."
+  description = "connections.toml profile written by scripts/bootstrap. Empty = use SNOWFLAKE_* env vars (CI)."
   type        = string
   default     = "handson_tf"
 }

@@ -21,6 +21,7 @@ proven by an automated access test matrix, plus monitoring, FinOps and a clean t
 | 5 | 05 part 2 | Iceberg v3 |
 | 6 | 06 | BI and AI |
 | 7 | 07 | Monitoring, FinOps, teardown |
+| 7+ | [08](docs/guides/08-ci-and-apply.md) | CI and apply from GitHub Actions |
 | opt | [appendix](docs/guides/appendix-aws.md) | Your own S3 bucket |
 
 ## Cost

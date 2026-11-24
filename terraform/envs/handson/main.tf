@@ -1,6 +1,6 @@
 # Credentials come from ~/.snowflake/connections.toml profile "handson_tf" (key-pair). Nothing secret here.
 provider "snowflake" {
-  profile                  = var.snowflake_profile
+  profile                  = var.snowflake_profile == "" ? null : var.snowflake_profile # "" in CI: env vars are used
   preview_features_enabled = var.preview_features
 }
 

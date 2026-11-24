@@ -21,6 +21,7 @@ Iceberg v3 テーブルとマート → Streamlit による BI と AI。**列・
 | 5 | 05 後半 | Iceberg v3 |
 | 6 | 06 | BI と AI |
 | 7 | 07 | 監視、FinOps、teardown |
+| 7+ | [08](docs/ja/guides/08-ci-and-apply.md) | CI と GitHub Actions からの apply |
 | 任意 | [付録](docs/ja/guides/appendix-aws.md) | 自分の S3 バケット |
 
 ## コスト

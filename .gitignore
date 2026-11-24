@@ -28,3 +28,5 @@ tags.auto.tfvars.json
 *.tfplan
 .terraform.tfstate.lock.info
 *.auto.tfvars.json
+backend.tf
+ci.auto.tfvars.json
