@@ -14,15 +14,15 @@ proven by an automated access test matrix, plus monitoring, FinOps and a clean t
 ## 7-day map
 | Day | Guide | Focus |
 |---|---|---|
-| 1 | [00](docs/guides/00-orientation.md), 01, 02 | Orientation, guardrails first, RBAC, Terraform, import lab |
-| 2 | 03 | Ingestion |
-| 3 | [05](docs/guides/05-transform-and-iceberg.md) part 1 | Transform to CURATED (policies attach there, so this comes first) |
-| 4-5 | 04 | Governance: tags, masking, row access, access matrix |
-| 5 | 05 part 2 | Iceberg v3 |
-| 6 | 06 | BI and AI |
-| 7 | 07 | Monitoring, FinOps, teardown |
-| 7+ | [08](docs/guides/08-ci-and-apply.md) | CI and apply from GitHub Actions |
-| opt | [appendix](docs/guides/appendix-aws.md) | Your own S3 bucket |
+| 1 | [00 Orientation](docs/guides/00-orientation.md), [01 Setup](docs/guides/01-setup-and-guardrails.md), [02 RBAC & Terraform](docs/guides/02-rbac-and-terraform.md) | Orientation, guardrails first, RBAC, Terraform, import lab |
+| 2 | [03 Ingestion](docs/guides/03-ingestion.md) | Ingestion |
+| 3 | [05 Transform & Iceberg](docs/guides/05-transform-and-iceberg.md) (part 1) | Transform to CURATED (policies attach there, so this comes first) |
+| 4-5 | [04 Governance](docs/guides/04-governance.md) | Governance: tags, masking, row access, access matrix |
+| 5 | [05 Transform & Iceberg](docs/guides/05-transform-and-iceberg.md) (part 2) | Iceberg v3 |
+| 6 | [06 BI & AI](docs/guides/06-bi-and-ai.md) | BI and AI |
+| 7 | [07 Monitoring & FinOps](docs/guides/07-monitoring-finops-teardown.md) | Monitoring, FinOps, teardown |
+| 7+ | [08 CI & apply](docs/guides/08-ci-and-apply.md) | CI and apply from GitHub Actions |
+| opt | [Appendix AWS](docs/guides/appendix-aws.md) | Your own S3 bucket |
 
 ## Cost
 Planned ~53 credits (about $240 at $4.50), reserve ~20, hard stop 80 credits via resource monitor.

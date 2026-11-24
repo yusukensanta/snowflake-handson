@@ -1,5 +1,9 @@
 # 05 · Transform and Iceberg
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [03 Ingestion](03-ingestion.md) · [04 Governance](04-governance.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/05-transform-and-iceberg.md](../ja/guides/05-transform-and-iceberg.md)
 
 ## 1. Transform with Dynamic Tables (do this before guide 04)
@@ -51,3 +55,8 @@ About 1 credit (one CTAS on XS plus storage).
 
 ## Verify (Iceberg)
 `SELECT COUNT(*) FROM HANBIT_MARTS.LAKE.CLAIMS_FACT` equals the curated claims count; the `ICEBERG_VERSION` parameter shows `3`.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [03 Ingestion](03-ingestion.md) · [04 Governance](04-governance.md) →
+<!-- /nav:bottom -->

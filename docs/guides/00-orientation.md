@@ -1,5 +1,9 @@
 # 00 · Orientation
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · [01 Setup](01-setup-and-guardrails.md) →
+<!-- /nav:top -->
+
 **Audience:** data engineers who know AWS/GCP (or similar) and are new to Snowflake.
 **Scenario:** Hanbit Insurance & Capital (fictional): underwriting, claims (health data), lending (credit data), finance, risk/fraud, marketing.
 **Japanese version:** [../ja/guides/00-orientation.md](../ja/guides/00-orientation.md)
@@ -41,3 +45,8 @@ Guardrails (resource monitor, auto-suspend 60 s) are created **before** any work
 
 ## Verify
 `scripts/check-secrets` prints `[check-secrets] clean`.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · [01 Setup](01-setup-and-guardrails.md) →
+<!-- /nav:bottom -->

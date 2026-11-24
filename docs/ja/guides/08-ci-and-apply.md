@@ -1,5 +1,9 @@
 # 08 · CI と GitHub Actions からの apply
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [07 監視と FinOps](07-monitoring-finops-teardown.md) · [付録 AWS](appendix-aws.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/08-ci-and-apply.md](../../guides/08-ci-and-apply.md)
 
 業務上のルール: **plan はどこでも、apply は人間が承認した後に CI からのみ。** 最初の apply(ガイド 02)はアカウントのブートストラップのためローカルから行い、CI を設定した後はこのフローに切り替えます。
@@ -19,6 +23,39 @@
    `SNOWFLAKE_ORGANIZATION_NAME`、`SNOWFLAKE_ACCOUNT_NAME`、`SNOWFLAKE_USER`、`SNOWFLAKE_PRIVATE_KEY`、`SNOWFLAKE_PRIVATE_KEY_PASSPHRASE`、`TF_API_TOKEN`、必要なら `TFVARS_JSON`(非公開の tfvars の内容を JSON にしたもの)。変数: `TF_CLOUD_ORGANIZATION`、`TF_WORKSPACE`。
 4. **`main` のブランチ保護:** `ci` のチェックとプルリクエストを必須にします。
 5. **ネットワークポリシー:** GitHub ホストランナーの IP は変動します。`TERRAFORM` ユーザーには `NP_HANDSON` を強制しないでください。CI がサインインできなくなります。人間のユーザーは引き続き制限します。
+
+## シークレットと変数の一覧
+ワークフローが読み取るすべての値です。ここにある値は一切コミットしません。`scripts/setup-github`(後述)がすべて設定します。
+
+| 名前 | 種類 | スコープ | 内容と入手方法 |
+|---|---|---|---|
+| `TF_CLOUD_ORGANIZATION` | 変数 | リポジトリ | HCP Terraform の組織名(app.terraform.io > Organizations) |
+| `TF_WORKSPACE` | 変数 | リポジトリ | ステートを保管するワークスペース(*Execution mode = Local*) |
+| `TF_API_TOKEN` | シークレット | 各環境 | HCP Terraform の API トークン。個人ユーザートークンではなく、そのワークスペースに限定した**チームトークン**(Settings > Teams)を作成します |
+| `SNOWFLAKE_ORGANIZATION_NAME` | シークレット | 各環境 | `SELECT CURRENT_ORGANIZATION_NAME();` |
+| `SNOWFLAKE_ACCOUNT_NAME` | シークレット | 各環境 | `SELECT CURRENT_ACCOUNT_NAME();`(URL 全体ではなく名前のみ) |
+| `SNOWFLAKE_USER` | シークレット | 各環境 | apply は `TERRAFORM`。plan は別の読み取り専用ユーザー |
+| `SNOWFLAKE_PRIVATE_KEY` | シークレット | 各環境 | そのユーザーの PEM 秘密鍵(下で生成)。改行は保持されます |
+| `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` | シークレット | 各環境 | 鍵のパスフレーズ。暗号化していない鍵なら省略(非推奨) |
+| `SNOWFLAKE_ROLE` | 変数 | 各環境 | apply は `TF_ADMIN`。plan は読み取り専用ロール |
+| `TFVARS_JSON` | シークレット | 各環境 | 任意。非公開の `terraform.tfvars` を JSON にしたもの(例: `allowed_ips`、`alert_email`、`grant_personas_to_user`) |
+
+アカウント情報を変数ではなくシークレットにしているのは意図的です。このリポジトリは公開されており、シークレットの値はログ上でマスクされます。
+
+### CI 専用の鍵ペアを生成する
+```bash
+openssl genrsa 2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -inform PEM -out ~/.snowflake/ci.p8      # パスフレーズを聞かれます
+openssl rsa -in ~/.snowflake/ci.p8 -pubout -out ~/.snowflake/ci.pub
+# 公開鍵は 2 つ目の鍵として登録します。ノート PC の鍵はそのまま使え、CI だけ単独でローテーションできます:
+#   ALTER USER TERRAFORM SET RSA_PUBLIC_KEY_2='<ci.pub の BEGIN/END 行を除いた内容>';
+```
+plan には別の鍵(と別のユーザー)を使います。ローテーションは、新しい鍵を生成し、`RSA_PUBLIC_KEY_2` を設定し、`scripts/setup-github` を再実行し、古い鍵を削除する、という順で行います。アップロード後、不要ならローカルの `.p8` ファイルは削除してください。
+
+### 設定済みの内容を確認する(名前のみ。GitHub は値を表示しません)
+```bash
+gh variable list; gh variable list --env snowflake-apply
+gh secret list --env snowflake-plan; gh secret list --env snowflake-apply
+```
 
 ## スクリプトによるセットアップ(手順 3 と 4)
 `scripts/setup-github` は、GitHub CLI を使って、必須レビュアー付きの 2 つの環境の作成、`snowflake-apply` の `main` への限定、変数とシークレットの登録、必要なら `main` のブランチ保護までを行います。冪等なので、シークレットのローテーションにも再実行できます。リポジトリ管理者として `gh auth login` が必要です。
@@ -46,3 +83,8 @@ git switch -c change-x && git commit … && gh pr create
 
 ## 確認
 `.tf` ファイルを変更する PR を開くと、`ci` が成功し、`terraform` ワークフローに plan が表示されること。マージ後、`apply` ジョブが承認を待ち、承認後に `Apply complete` と報告されること。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [07 監視と FinOps](07-monitoring-finops-teardown.md) · [付録 AWS](appendix-aws.md) →
+<!-- /nav:bottom -->

@@ -14,15 +14,15 @@ Iceberg v3 テーブルとマート → Streamlit による BI と AI。**列・
 ## 7日間の流れ
 | 日 | ガイド | 内容 |
 |---|---|---|
-| 1 | [00](docs/ja/guides/00-orientation.md), 01, 02 | 概要、まずコスト防御、RBAC、Terraform、import ラボ |
-| 2 | 03 | データ取り込み |
-| 3 | [05](docs/ja/guides/05-transform-and-iceberg.md) 前半 | CURATED への変換(ポリシーは CURATED に付けるため先に行う) |
-| 4-5 | 04 | ガバナンス: タグ、マスキング、行アクセス、アクセステスト |
-| 5 | 05 後半 | Iceberg v3 |
-| 6 | 06 | BI と AI |
-| 7 | 07 | 監視、FinOps、teardown |
-| 7+ | [08](docs/ja/guides/08-ci-and-apply.md) | CI と GitHub Actions からの apply |
-| 任意 | [付録](docs/ja/guides/appendix-aws.md) | 自分の S3 バケット |
+| 1 | [00 概要](docs/ja/guides/00-orientation.md)、[01 セットアップ](docs/ja/guides/01-setup-and-guardrails.md)、[02 RBAC と Terraform](docs/ja/guides/02-rbac-and-terraform.md) | 概要、まずコスト防御、RBAC、Terraform、import ラボ |
+| 2 | [03 データ取り込み](docs/ja/guides/03-ingestion.md) | データ取り込み |
+| 3 | [05 変換と Iceberg](docs/ja/guides/05-transform-and-iceberg.md)(前半) | CURATED への変換(ポリシーは CURATED に付けるため先に行う) |
+| 4-5 | [04 ガバナンス](docs/ja/guides/04-governance.md) | ガバナンス: タグ、マスキング、行アクセス、アクセステスト |
+| 5 | [05 変換と Iceberg](docs/ja/guides/05-transform-and-iceberg.md)(後半) | Iceberg v3 |
+| 6 | [06 BI と AI](docs/ja/guides/06-bi-and-ai.md) | BI と AI |
+| 7 | [07 監視と FinOps](docs/ja/guides/07-monitoring-finops-teardown.md) | 監視、FinOps、teardown |
+| 7+ | [08 CI と apply](docs/ja/guides/08-ci-and-apply.md) | CI と GitHub Actions からの apply |
+| 任意 | [付録 AWS](docs/ja/guides/appendix-aws.md) | 自分の S3 バケット |
 
 ## コスト
 計画は約 53 クレジット($4.50 換算で約 $240)、予備約 20、リソースモニターのハードストップは 80 クレジットです。

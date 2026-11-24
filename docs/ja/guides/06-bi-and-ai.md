@@ -1,5 +1,9 @@
 # 06 · BI と AI
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [04 ガバナンス](04-governance.md) · [07 監視と FinOps](07-monitoring-finops-teardown.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/06-bi-and-ai.md](../../guides/06-bi-and-ai.md)
 
 ## 1. BI: Snowflake 内の Streamlit ダッシュボード
@@ -24,3 +28,8 @@ Snowsight(Projects > Streamlit)を `CLAIMS_ADJUSTER` で開くと、Seoul の行
 
 ## 確認
 `CLAIMS_ADJUSTER` でアプリが開き、地域だけが表示されること。AI を有効にした場合は、機微な列への質問が拒否またはマスクされること。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [04 ガバナンス](04-governance.md) · [07 監視と FinOps](07-monitoring-finops-teardown.md) →
+<!-- /nav:bottom -->

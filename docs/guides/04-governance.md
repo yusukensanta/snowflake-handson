@@ -1,5 +1,9 @@
 # 04 · Governance: column, row and role control
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [05 Transform & Iceberg](05-transform-and-iceberg.md) · [06 BI & AI](06-bi-and-ai.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/04-governance.md](../ja/guides/04-governance.md)
 
 **Prerequisite:** the CURATED tables exist (guide 05 §1, Dynamic Tables), because personas have no access to RAW by design.
@@ -44,3 +48,8 @@ scripts/access-matrix               # core cases (6 personas); add --stretch for
 - `denied` passes only for privilege/policy errors. Network or warehouse errors abort the run (they would otherwise look like a "pass").
 - **Break it on purpose:** `ALTER TAG HANBIT_GOV.TAGS.SENSITIVITY UNSET MASKING POLICY HANBIT_GOV.POLICIES.MASK_SENSITIVE_STRING;` then re-run: the `masked` cases FAIL with "leak". Fix it with `terraform apply`.
 - Afterwards, audit the matrix's own reads: `sql/audit.sql` (guide 07).
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [05 Transform & Iceberg](05-transform-and-iceberg.md) · [06 BI & AI](06-bi-and-ai.md) →
+<!-- /nav:bottom -->

@@ -1,5 +1,9 @@
 # 02 · RBAC と Terraform
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [01 セットアップ](01-setup-and-guardrails.md) · [03 データ取り込み](03-ingestion.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/02-rbac-and-terraform.md](../../guides/02-rbac-and-terraform.md)
 
 ## 1. サービス ID として Terraform を実行
@@ -52,3 +56,8 @@ terraform -chdir=terraform/envs/handson plan  # "No changes" になること
 ここでのルール: ペルソナロール以外をユーザーに直接付与しない。`DATA_PLATFORM_ENGINEER` は RAW/CURATED への RW を持つが(ガイド 04 の後は)PII がマスクされる。`AUDITOR` と `SECURITY_ADMIN_FN` はデータ用ロールを一切持たない。
 
 クラウドとの対応: タグ + マスキングポリシー ≈ Lake Formation の LF-Tag や BigQuery のポリシータグによる列レベルセキュリティ。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [01 セットアップ](01-setup-and-guardrails.md) · [03 データ取り込み](03-ingestion.md) →
+<!-- /nav:bottom -->

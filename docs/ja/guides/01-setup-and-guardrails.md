@@ -1,5 +1,9 @@
 # 01 · セットアップとガードレール
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [00 概要](00-orientation.md) · [02 RBAC と Terraform](02-rbac-and-terraform.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/01-setup-and-guardrails.md](../../guides/01-setup-and-guardrails.md)
 
 順序が重要です: ツール → 接続 → preflight → ガードレール(リソースモニター) → コンピュートを使う作業。
@@ -57,3 +61,8 @@ scripts/cost-guard --status
 
 ## 確認(ガードレール)
 `scripts/cost-guard --status` に、上限 80 の `HANDSON_ACCOUNT_MONITOR` が表示されること。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [00 概要](00-orientation.md) · [02 RBAC と Terraform](02-rbac-and-terraform.md) →
+<!-- /nav:bottom -->

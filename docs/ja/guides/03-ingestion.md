@@ -1,5 +1,9 @@
 # 03 · データ取り込み
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [02 RBAC と Terraform](02-rbac-and-terraform.md) · [05 変換と Iceberg](05-transform-and-iceberg.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/03-ingestion.md](../../guides/03-ingestion.md)
 
 AWS アカウントは不要です。ファイルは Snowflake の**内部ステージ**(Snowflake が暗号化)に置き、行は **Snowpipe Streaming** で直接送ることもできます。
@@ -39,3 +43,8 @@ scripts/stream-load --domain claims --file data/out/claims.csv.gz
 
 ## 確認
 `SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS` が `--rows`(既定 20 万)と一致し、2 回目の `scripts/load-batch` が何もロードしないこと。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [02 RBAC と Terraform](02-rbac-and-terraform.md) · [05 変換と Iceberg](05-transform-and-iceberg.md) →
+<!-- /nav:bottom -->

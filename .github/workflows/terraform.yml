@@ -21,7 +21,8 @@ env:
 jobs:
   plan:
     # Secrets are never exposed to fork PRs; skip them explicitly instead of failing.
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Skipped until the HCP Terraform variables exist (guide 08), so an unconfigured repo stays green.
+    if: vars.TF_WORKSPACE != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     environment: snowflake-plan   # required reviewers: PR code (even edits to this file) runs with credentials only after approval
     # Credentials exist only in this job's environment, never workflow-wide. The plan environment should hold a separate READ-ONLY identity (guide 08).

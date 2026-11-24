@@ -1,5 +1,9 @@
 # Appendix · Your own S3 bucket for Iceberg (optional)
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [08 CI & apply](08-ci-and-apply.md)
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/appendix-aws.md](../ja/guides/appendix-aws.md)
 
 The core path needs no AWS account (Snowflake-managed storage). Use this appendix only if you own an AWS account and want the Iceberg data in **your** bucket. The repo owner has not applied it; it is `terraform validate`-checked only, so expect to adjust.
@@ -16,3 +20,8 @@ Snowflake side: about the same as guide 05. AWS side: S3 storage and requests, a
 
 ## Verify
 `DESC EXTERNAL VOLUME HANBIT_LAKE_VOL` succeeds and a test table writes Parquet files to the bucket.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [08 CI & apply](08-ci-and-apply.md)
+<!-- /nav:bottom -->

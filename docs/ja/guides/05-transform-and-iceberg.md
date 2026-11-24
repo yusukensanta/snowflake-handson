@@ -1,5 +1,9 @@
 # 05 · 変換と Iceberg
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [03 データ取り込み](03-ingestion.md) · [04 ガバナンス](04-governance.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/05-transform-and-iceberg.md](../../guides/05-transform-and-iceberg.md)
 
 ## 1. Dynamic Tables による変換(ガイド 04 より先に行います)
@@ -51,3 +55,8 @@ ap-northeast-2 のトライアルでは、Snowflake 管理の Iceberg ストレ�
 
 ## 確認(Iceberg)
 `SELECT COUNT(*) FROM HANBIT_MARTS.LAKE.CLAIMS_FACT` が CURATED の claims 件数と一致し、`ICEBERG_VERSION` パラメータが `3` であること。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [03 データ取り込み](03-ingestion.md) · [04 ガバナンス](04-governance.md) →
+<!-- /nav:bottom -->

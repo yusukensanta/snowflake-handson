@@ -1,5 +1,9 @@
 # 02 · RBAC and Terraform
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [01 Setup](01-setup-and-guardrails.md) · [03 Ingestion](03-ingestion.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/02-rbac-and-terraform.md](../ja/guides/02-rbac-and-terraform.md)
 
 ## 1. Run Terraform as the service identity
@@ -52,3 +56,8 @@ To test personas, put `grant_personas_to_user = "<your user>"` in the git-ignore
 Design rules enforced here: no direct grants to users except persona roles; `DATA_PLATFORM_ENGINEER` has RW on RAW/CURATED but (after guide 04) sees masked PII; `AUDITOR` and `SECURITY_ADMIN_FN` hold no data roles at all.
 
 Cloud mapping: tag + masking policy ≈ Lake Formation LF-Tags or BigQuery policy tags with column-level security.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [01 Setup](01-setup-and-guardrails.md) · [03 Ingestion](03-ingestion.md) →
+<!-- /nav:bottom -->

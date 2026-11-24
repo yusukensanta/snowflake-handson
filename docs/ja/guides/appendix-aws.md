@@ -1,5 +1,9 @@
 # 付録 · Iceberg 用の自分の S3 バケット(任意)
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [08 CI と apply](08-ci-and-apply.md)
+<!-- /nav:top -->
+
 **English:** [../../guides/appendix-aws.md](../../guides/appendix-aws.md)
 
 コースの本線では AWS アカウントは不要です(Snowflake 管理ストレージを使います)。この付録は、AWS アカウントを持っていて、Iceberg のデータを**自分のバケット**に置きたい場合にだけ使ってください。リポジトリのオーナーは適用しておらず、`terraform validate` による検証のみのため、調整が必要になる可能性があります。
@@ -16,3 +20,8 @@ Snowflake 側: ガイド 05 とほぼ同じ。AWS 側: S3 のストレージと�
 
 ## 確認
 `DESC EXTERNAL VOLUME HANBIT_LAKE_VOL` が成功し、テストテーブルがバケットに Parquet ファイルを書き込むこと。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [08 CI と apply](08-ci-and-apply.md)
+<!-- /nav:bottom -->
