@@ -102,11 +102,28 @@ resource "snowflake_execute" "tag_masking" {
   ]
 }
 
-# ---- Row access: data-driven. Entitlement table is created by sql/policies_attach.sql. ----
-resource "snowflake_row_access_policy" "region" {
+# ---- Row access: data-driven. The table must exist before the policy (Snowflake validates the policy body when it
+# is created); sql/policies_attach.sql fills it with rows. ----
+resource "snowflake_table" "role_region" {
   database = snowflake_database.gov.name
-  schema   = snowflake_schema.policies.name
-  name     = "RAP_REGION"
+  schema   = snowflake_schema.entitlements.name
+  name     = "ROLE_REGION"
+  comment  = "Entitlements as data: which role sees which region (RAP_REGION)"
+  column {
+    name = "ROLE_NAME"
+    type = "VARCHAR"
+  }
+  column {
+    name = "REGION"
+    type = "VARCHAR"
+  }
+}
+
+resource "snowflake_row_access_policy" "region" {
+  depends_on = [snowflake_table.role_region]
+  database   = snowflake_database.gov.name
+  schema     = snowflake_schema.policies.name
+  name       = "RAP_REGION"
   argument {
     name = "ROW_REGION"
     type = "VARCHAR"

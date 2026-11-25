@@ -5,9 +5,15 @@ variable "snowflake_profile" {
 }
 
 variable "preview_features" {
-  description = "Provider preview features to enable (e.g. snowflake_iceberg_table_resource)."
+  description = "Provider preview features to enable (provider 2.23.0). Only features still in preview belong here: already-promoted ones (authentication/session policy, stage_internal, file_format_csv, auth policy attachments) warn if listed. Add e.g. snowflake_iceberg_table_resource for guide 05."
   type        = list(string)
-  default     = []
+  default = [
+    "snowflake_alert_resource",
+    "snowflake_email_notification_integration_resource",
+    "snowflake_network_policy_attachment_resource",
+    "snowflake_projection_policy_resource",
+    "snowflake_table_resource",
+  ]
 }
 
 variable "grant_personas_to_user" {

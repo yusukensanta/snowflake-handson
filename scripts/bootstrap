@@ -52,6 +52,8 @@ pubkey="<public key body>"
 sql "CREATE USER IF NOT EXISTS TERRAFORM TYPE = SERVICE DEFAULT_ROLE = TF_ADMIN COMMENT = 'Terraform service identity (key-pair only)'"
 sql "ALTER USER TERRAFORM SET RSA_PUBLIC_KEY = '$pubkey'"
 sql "GRANT ROLE TF_ADMIN TO USER TERRAFORM"
+# Attaching AP_SERVICE to this user needs the privilege on the USER itself; the account-level grant above is not enough.
+sql "GRANT APPLY AUTHENTICATION POLICY ON USER TERRAFORM TO ROLE TF_ADMIN"
 
 if [ "$DRY_RUN" != "1" ] && ! grep -q '^\[handson_tf\]' "$cfg" 2>/dev/null; then
   acct="$(snow connection list --format json 2>/dev/null | python3 -c "import sys,json; print(next(c['parameters']['account'] for c in json.load(sys.stdin) if c['connection_name']=='$conn'))")"

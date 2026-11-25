@@ -17,7 +17,7 @@ terraform -chdir=terraform/envs/handson plan  # must say: No changes
 scripts/attach-monitors                       # admin connection: attach the per-warehouse resource monitors
 ```
 The monitors were created by `scripts/bootstrap` (guide 01). Only `ACCOUNTADMIN` can assign a warehouse to a resource monitor, so this step is outside Terraform, which ignores the warehouses' `resource_monitor` setting. It is idempotent: re-run it after any `terraform apply` that creates a warehouse (including the CI apply in guide 08).
-The Terraform provider does not read `connections.toml` (that is the CLI's file), so `scripts/tf-env` translates the profile into the `SNOWFLAKE_*` variables the provider and CI use. Source it in every new terminal. The provider is pinned in `versions.tf` (`2.23.0`); resource names were read from the provider schema, not guessed. Aggregation policies, budgets and data metric function attachments have no resource, so they are applied from `sql/`.
+The Terraform provider does not read `connections.toml` (that is the CLI's file), so `scripts/tf-env` translates the profile into the `SNOWFLAKE_*` variables the provider and CI use. Source it in every new terminal. If the first `apply` stops with `No active warehouse selected`, run it again: the warehouse is created during that run, and the provider session picks it up next time. The provider is pinned in `versions.tf` (`2.23.0`); resource names were read from the provider schema, not guessed. Aggregation policies, budgets and data metric function attachments have no resource, so they are applied from `sql/`.
 
 ## 2. The RBAC pattern
 - **Object ownership** stays with Terraform's role; humans never own objects.
