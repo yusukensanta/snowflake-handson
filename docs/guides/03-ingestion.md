@@ -36,7 +36,7 @@ scripts/load-batch               # again: loads 0 new rows (COPY remembers loade
 ```bash
 scripts/stream-load --domain claims --file data/out/claims.csv.gz
 ```
-Rows land in `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` through the high-performance SDK (key-pair auth, offset tokens per batch). **Unverified on a live account:** the SDK's connection `properties` keys; if the call fails, compare with the SDK reference and adjust `SdkSink` in `src/sfops/streaming.py`.
+Rows land in `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` through the high-performance SDK (key-pair auth, offset tokens per batch). Needs `PRIVATE_KEY_PASSPHRASE` exported. `sdk_properties` in `src/sfops/streaming.py` maps the `handson_tf` profile to the SDK's keys (`url`, `user`, `private_key_file`, `private_key_passphrase`, `role`). **Not yet confirmed to complete on a live account**; if it fails, paste the error.
 
 ## Cost of this step
 About 8 credits (XS `LOAD_WH`, auto-suspend 60 s). Streaming is billed per ingested volume, not warehouse time.

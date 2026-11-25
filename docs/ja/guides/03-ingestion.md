@@ -36,7 +36,7 @@ scripts/load-batch               # もう一度: 新規ロードは 0 行(COPY �
 ```bash
 scripts/stream-load --domain claims --file data/out/claims.csv.gz
 ```
-行は高性能 SDK(鍵ペア認証、バッチごとのオフセットトークン)を通じて `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` に入ります。**実アカウントでは未検証:** SDK の接続 `properties` のキー。失敗する場合は SDK リファレンスと照合し、`src/sfops/streaming.py` の `SdkSink` を調整してください。
+行は高性能 SDK(鍵ペア認証、バッチごとのオフセットトークン)を通じて `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` に入ります。`PRIVATE_KEY_PASSPHRASE` の export が必要です。`src/sfops/streaming.py` の `sdk_properties` が、`handson_tf` プロファイルを SDK のキー(`url`、`user`、`private_key_file`、`private_key_passphrase`、`role`)に変換します。**実アカウントでの完了は未確認です**。失敗した場合はエラーを貼ってください。
 
 ## このステップのコスト
 約 8 クレジット(XS の `LOAD_WH`、auto-suspend 60 秒)。ストリーミングはウェアハウス時間ではなく取り込み量に課金されます。
