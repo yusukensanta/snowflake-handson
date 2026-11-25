@@ -38,10 +38,18 @@ def load_profile(name: str) -> dict[str, str]:
 
 
 def connect(connection_name: str, role: str | None = None) -> snowflake.connector.SnowflakeConnection:
-    _entry(connection_name)  # validates presence
+    entry = _entry(connection_name)  # validates presence
     kwargs: dict[str, str] = {"connection_name": connection_name}
+    key_file = str(entry.get("private_key_file", ""))
+    if key_file.startswith("~"):
+        # The connector does not expand "~" ("Could not read private key file"); do it here.
+        kwargs["private_key_file"] = str(Path(key_file).expanduser())
     if role:
         kwargs["role"] = role
+    passphrase = os.environ.get("PRIVATE_KEY_PASSPHRASE")
+    if passphrase and entry.get("private_key_file") and "private_key_password" not in entry:
+        # The repo exports PRIVATE_KEY_PASSPHRASE (snow CLI, Terraform); the connector wants this name.
+        kwargs["private_key_password"] = passphrase
     try:
         return snowflake.connector.connect(**kwargs)
     except Exception as exc:  # noqa: BLE001 - never forward driver text: it may echo parameters
