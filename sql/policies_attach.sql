@@ -18,5 +18,7 @@ CREATE AGGREGATION POLICY IF NOT EXISTS HANBIT_GOV.POLICIES.AGG_MIN_GROUP_5
        ELSE NO_AGGREGATION_CONSTRAINT() END;
 
 -- Service identity: key-pair only. Done in SQL because the Terraform attachment resource cannot read the reference back
--- as TF_ADMIN (provider 2.23.0). TF_ADMIN has APPLY AUTHENTICATION POLICY on this user (scripts/bootstrap). Idempotent.
-ALTER USER TERRAFORM SET AUTHENTICATION POLICY HANBIT_GOV.POLICIES.AP_SERVICE;
+-- as TF_ADMIN (provider 2.23.0). TF_ADMIN has APPLY AUTHENTICATION POLICY on this user (scripts/bootstrap).
+-- FORCE makes it idempotent: without it, a re-run (or a policy the earlier Terraform attachment already set) fails with
+-- "Object TERRAFORM already has a AUTHENTICATION_POLICY".
+ALTER USER TERRAFORM SET AUTHENTICATION POLICY HANBIT_GOV.POLICIES.AP_SERVICE FORCE;

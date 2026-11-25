@@ -11,7 +11,7 @@ variable "tag_layers" {
 }
 
 variable "apply_column_tags" {
-  description = "Second-stage switch: set true after RAW tables exist."
+  description = "Second-stage switch: set true once the CURATED tables exist (guide 05 section 1). Keep it in terraform.tfvars, not a one-off -var."
   type        = bool
   default     = false
 }
