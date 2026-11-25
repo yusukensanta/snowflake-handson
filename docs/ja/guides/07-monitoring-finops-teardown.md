@@ -42,12 +42,12 @@ scripts/cost-report            # サービス別クレジットを計画 53 / �
 scripts/cost-guard --status    # ウェアハウス、モニター、Dynamic Table
 scripts/cost-guard --suspend-all
 ```
-保護は安い順に重ねます。ウェアハウスの `auto_suspend = 60`、ウェアハウス単位のリソースモニター(Terraform の `finops`)、80 クレジットで強制停止するアカウントモニター `HANDSON_ACCOUNT_MONITOR`(`scripts/bootstrap` が作成)、そしてこのレポートです。`ACCOUNT_USAGE` は最大 3 時間ほど遅れるため、本当のブレーキはレポートではなくモニターです。Seoul のレートを `scripts/preflight` で確認するまで、クレジット数は推定値です。
+保護は安い順に重ねます。ウェアハウスの `auto_suspend = 60`、ウェアハウス単位のリソースモニター(`scripts/bootstrap` が作成し、`scripts/attach-monitors` が割り当て)、80 クレジットで強制停止するアカウントモニター `HANDSON_ACCOUNT_MONITOR`(`scripts/bootstrap` が作成)、そしてこのレポートです。`ACCOUNT_USAGE` は最大 3 時間ほど遅れるため、本当のブレーキはレポートではなくモニターです。Seoul のレートを `scripts/preflight` で確認するまで、クレジット数は推定値です。
 
 ## 5. 後片付け
 ```bash
 scripts/teardown --dry-run     # プレビュー
-scripts/teardown --yes         # コンピュートをサスペンドし、terraform destroy、OPS DB・モニター・TERRAFORM ユーザー・TF_ADMIN を削除
+scripts/teardown --yes         # コンピュートをサスペンドし、terraform destroy、OPS DB・モニター(アカウントとウェアハウス)・TERRAFORM ユーザー・TF_ADMIN を削除
 ```
 破壊的な操作のため、`--yes` なしでは実行を拒否します。完了後は、生成したローカルの `~/.snowflake/*.p8` 鍵も削除してください。
 

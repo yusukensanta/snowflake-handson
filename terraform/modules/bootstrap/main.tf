@@ -10,7 +10,8 @@ resource "snowflake_account_role" "persona" {
   comment  = "Functional role (persona) - privileges come only via access roles"
 }
 
-# All warehouses: XS, auto-suspend 60 s, statement timeout, attached monitor.
+# All warehouses: XS, auto-suspend 60 s, statement timeout. The resource monitor is attached outside Terraform
+# (scripts/attach-monitors, ACCOUNTADMIN only), so Terraform must not try to manage or unset it.
 resource "snowflake_warehouse" "this" {
   for_each                     = var.warehouse_monitors
   name                         = each.key
@@ -19,8 +20,11 @@ resource "snowflake_warehouse" "this" {
   auto_resume                  = "true"
   initially_suspended          = true
   statement_timeout_in_seconds = 1800
-  resource_monitor             = each.value
   comment                      = "Hands-on warehouse; see guide 01 for cost guardrails"
+
+  lifecycle {
+    ignore_changes = [resource_monitor]
+  }
 }
 
 locals {

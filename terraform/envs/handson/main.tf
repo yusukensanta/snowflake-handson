@@ -5,13 +5,15 @@ provider "snowflake" {
   preview_features_enabled = var.preview_features
 }
 
-module "finops" {
-  source = "../../modules/finops"
+# Warehouse => resource monitor name. The monitors are created by scripts/bootstrap and attached by scripts/attach-monitors,
+# because only ACCOUNTADMIN can do either. Keep in sync with WAREHOUSE_MONITORS in scripts/lib/common.sh.
+locals {
+  warehouse_monitors = { for w in ["LOAD_WH", "TRANSFORM_WH", "BI_WH", "MONITOR_WH"] : w => "${w}_MONITOR" }
 }
 
 module "bootstrap" {
   source                 = "../../modules/bootstrap"
-  warehouse_monitors     = module.finops.warehouse_monitor_names
+  warehouse_monitors     = local.warehouse_monitors
   grant_personas_to_user = var.grant_personas_to_user
   depends_on             = [module.databases]
 }

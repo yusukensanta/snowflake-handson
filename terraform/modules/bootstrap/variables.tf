@@ -1,5 +1,5 @@
 variable "warehouse_monitors" {
-  description = "Warehouse name => resource monitor name (from the finops module)."
+  description = "Warehouse name => resource monitor name. Only the keys create warehouses; monitors are attached by scripts/attach-monitors."
   type        = map(string)
 }
 

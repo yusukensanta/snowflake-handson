@@ -11,10 +11,12 @@
 export PRIVATE_KEY_PASSPHRASE='...'          # typed in your shell, never written to a file
 source scripts/tf-env                         # exports SNOWFLAKE_* for the provider from the [handson_tf] profile
 terraform -chdir=terraform/envs/handson init
-terraform -chdir=terraform/envs/handson plan  # warehouses (XS, auto-suspend 60 s), 9 persona roles, 4 monitors
+terraform -chdir=terraform/envs/handson plan  # warehouses (XS, auto-suspend 60 s), 9 persona roles
 terraform -chdir=terraform/envs/handson apply
 terraform -chdir=terraform/envs/handson plan  # must say: No changes
+scripts/attach-monitors                       # admin connection: attach the per-warehouse resource monitors
 ```
+The monitors were created by `scripts/bootstrap` (guide 01). Only `ACCOUNTADMIN` can assign a warehouse to a resource monitor, so this step is outside Terraform, which ignores the warehouses' `resource_monitor` setting. It is idempotent: re-run it after any `terraform apply` that creates a warehouse (including the CI apply in guide 08).
 The Terraform provider does not read `connections.toml` (that is the CLI's file), so `scripts/tf-env` translates the profile into the `SNOWFLAKE_*` variables the provider and CI use. Source it in every new terminal. The provider is pinned in `versions.tf` (`2.23.0`); resource names were read from the provider schema, not guessed. Aggregation policies, budgets and data metric function attachments have no resource, so they are applied from `sql/`.
 
 ## 2. The RBAC pattern
@@ -27,7 +29,7 @@ The Terraform provider does not read `connections.toml` (that is the CLI's file)
 About 1 credit for the verification queries.
 
 ## Verify
-Second `terraform plan` prints `No changes`.
+Second `terraform plan` prints `No changes`, and `scripts/cost-guard --status` shows a `resource_monitor` for each warehouse.
 
 ## 3. Import lab: adopt hand-built objects
 Real teams start with click-ops. Terraform can adopt those objects without recreating them.

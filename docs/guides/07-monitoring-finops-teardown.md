@@ -42,12 +42,12 @@ scripts/cost-report            # credits by service vs plan 53 / warn 70 / hard 
 scripts/cost-guard --status    # warehouses, monitors, dynamic tables
 scripts/cost-guard --suspend-all
 ```
-Layers of protection, cheapest first: warehouse `auto_suspend = 60`; per-warehouse resource monitors (Terraform `finops`); the account monitor `HANDSON_ACCOUNT_MONITOR` with a hard stop at 80 credits (created by `scripts/bootstrap`); and this report. `ACCOUNT_USAGE` lags up to about 3 hours, so the monitor, not the report, is the real brake. Credits are an estimate until you confirm the Seoul rate in `scripts/preflight`.
+Layers of protection, cheapest first: warehouse `auto_suspend = 60`; per-warehouse resource monitors (created by `scripts/bootstrap`, attached by `scripts/attach-monitors`); the account monitor `HANDSON_ACCOUNT_MONITOR` with a hard stop at 80 credits (created by `scripts/bootstrap`); and this report. `ACCOUNT_USAGE` lags up to about 3 hours, so the monitor, not the report, is the real brake. Credits are an estimate until you confirm the Seoul rate in `scripts/preflight`.
 
 ## 5. Teardown
 ```bash
 scripts/teardown --dry-run     # preview
-scripts/teardown --yes         # suspend compute, terraform destroy, drop OPS db, monitor, TERRAFORM user, TF_ADMIN
+scripts/teardown --yes         # suspend compute, terraform destroy, drop OPS db, monitors, TERRAFORM user, TF_ADMIN
 ```
 It is destructive and refuses to run without `--yes`. Afterwards delete the local `~/.snowflake/*.p8` keys you generated.
 
