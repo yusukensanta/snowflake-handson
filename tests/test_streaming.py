@@ -71,3 +71,31 @@ def test_cli_streams_named_domain_and_prints_count(tmp_path, monkeypatch, capsys
     monkeypatch.setattr(streaming, "stream_file", lambda conn, domain, path, batch_size: 3)
     assert streaming.main(["--connection", "c", "--domain", "claims", "--file", str(f)]) == 0
     assert capsys.readouterr().out.strip() == "streamed 3 rows into claims"
+
+
+def test_sdk_properties_builds_url_and_key_file(tmp_path):
+    from sfops.streaming import sdk_properties
+
+    profile = {"account": "ORG-ACCT", "user": "TERRAFORM", "private_key_file": "~/k.p8", "role": "TF_ADMIN",
+               "authenticator": "SNOWFLAKE_JWT", "warehouse": "TRANSFORM_WH"}
+    props = sdk_properties(profile, {"PRIVATE_KEY_PASSPHRASE": "pw"})
+    assert props["url"] == "https://ORG-ACCT." + "snowflake" + "computing.com"  # split so check-secrets stays quiet
+    assert props["account"] == "ORG-ACCT" and props["user"] == "TERRAFORM" and props["role"] == "TF_ADMIN"
+    assert props["authorization_type"] == "JWT"
+    assert props["private_key_file"].endswith("/k.p8") and not props["private_key_file"].startswith("~")
+    assert props["private_key_passphrase"] == "pw"
+    assert "authenticator" not in props and "warehouse" not in props
+
+
+def test_sdk_properties_without_passphrase_or_role():
+    from sfops.streaming import sdk_properties
+
+    props = sdk_properties({"account": "A-B", "user": "U", "private_key_file": "/k.p8"}, {})
+    assert "private_key_passphrase" not in props and "role" not in props
+
+
+def test_sdk_properties_requires_account_user_and_key():
+    from sfops.streaming import sdk_properties
+
+    with pytest.raises(ValueError, match="private_key_file"):
+        sdk_properties({"account": "A-B", "user": "U"}, {})

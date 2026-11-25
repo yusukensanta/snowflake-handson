@@ -8,6 +8,7 @@ from __future__ import annotations
 import csv
 import gzip
 import io
+import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Protocol
@@ -21,6 +22,32 @@ class RowSink(Protocol):
     def close(self) -> None: ...
 
 
+def sdk_properties(profile: dict[str, str], environ: dict[str, str] | None = None) -> dict[str, str]:
+    """Map a CLI connection profile to the high-performance SDK's client properties.
+
+    The SDK does not read connections.toml: it needs `url` (not just `account`), `user`, and `private_key_file`
+    (with `private_key_passphrase` for an encrypted key). Passing the profile through unchanged fails with
+    "Missing host for account URL construction". The passphrase comes from PRIVATE_KEY_PASSPHRASE, never from a file.
+    """
+    env = os.environ if environ is None else environ
+    try:
+        account, user, key_file = profile["account"], profile["user"], profile["private_key_file"]
+    except KeyError as e:
+        raise ValueError(f"connection profile is missing {e.args[0]!r}") from None
+    props = {
+        "authorization_type": "JWT",
+        "url": f"https://{account}.snowflakecomputing.com",
+        "account": account,
+        "user": user,
+        "private_key_file": str(Path(key_file).expanduser()),
+    }
+    if profile.get("role"):
+        props["role"] = profile["role"]
+    if env.get("PRIVATE_KEY_PASSPHRASE"):
+        props["private_key_passphrase"] = env["PRIVATE_KEY_PASSPHRASE"]
+    return props
+
+
 class SdkSink:  # pragma: no cover - needs the real SDK and a live account; verified by the owner
     """Adapter over snowflake.ingest.streaming (table mode: pipe is `<TABLE>-STREAMING`)."""
 
@@ -30,7 +57,7 @@ class SdkSink:  # pragma: no cover - needs the real SDK and a live account; veri
         profile = load_profile(conn_name)
         self._client = StreamingIngestClient.from_table(
             f"handson-{domain}", database, domain.upper(), f"{domain.upper()}_STREAM",
-            properties=profile,
+            properties=sdk_properties(profile),
         )
         self._channel, _ = self._client.open_channel(f"{domain}_channel")
 
