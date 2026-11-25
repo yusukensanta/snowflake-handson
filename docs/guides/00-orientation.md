@@ -41,11 +41,25 @@
 
 Guardrails (resource monitor, auto-suspend 60 s) are created **before** any workload.
 
+## Start every session
+Every new terminal needs the key passphrase; Terraform commands also need `scripts/tf-env`. Scripts use the `handson_tf` connection (role `TF_ADMIN`) unless a guide says `handson_admin` (`ACCOUNTADMIN`: bootstrap, `attach-monitors`, teardown).
+```bash
+cd snowflake-handson
+read -rs "PRIVATE_KEY_PASSPHRASE?Key passphrase: " && echo && export PRIVATE_KEY_PASSPHRASE   # zsh; bash: read -rsp 'Key passphrase: ' PRIVATE_KEY_PASSPHRASE; echo; export PRIVATE_KEY_PASSPHRASE
+source scripts/tf-env      # only before terraform commands (guides 02, 04, 05, 07)
+```
+Each guide ends with a **Verify** block: the exact commands, what to expect, and where to see the same state in Snowsight. `scripts/verify-step N` runs the read-only check and records it in `.progress/state.json`.
+
 ## Cost of this step
 0 credits (reading only).
 
 ## Verify
-`scripts/check-secrets` prints `[check-secrets] clean`.
+
+```bash
+scripts/verify-step 00        # runs scripts/check-secrets; no Snowflake connection
+cat .progress/state.json      # one UTC timestamp per verified step
+```
+Expect `[check-secrets] clean`, then `[info] step 00 verified; recorded in .progress/state.json`.
 
 ---
 <!-- nav:bottom -->

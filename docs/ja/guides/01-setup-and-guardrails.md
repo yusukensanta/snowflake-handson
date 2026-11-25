@@ -74,7 +74,13 @@ scripts/preflight
 約 0.1 クレジット(プローブ用に XS ウェアハウスを数秒使用)。
 
 ## 確認
-`scripts/preflight` が終了コード 0 で終わり、`block` の行が出ないこと。
+
+```bash
+scripts/preflight                       # 終了コード 0 で、`block` の行が出ないこと
+snow connection test -c handson_admin   # Status: OK
+scripts/verify-step 01
+```
+`[info] step 01 verified` と表示されること。接続テストが失敗したら、手順 2 のエラー表を見てください。
 
 ## 4. ワークロードの前にガードレール
 ```bash
@@ -94,7 +100,16 @@ scripts/cost-guard --status
 0 クレジット。モニターとロールはメタデータのみです。
 
 ## 確認(ガードレール)
-`scripts/cost-guard --status` に、上限 80 の `HANDSON_ACCOUNT_MONITOR` が表示されること。
+
+```bash
+scripts/cost-guard --status                              # JSON: resource_monitors、続いて warehouses(まだ空)
+snow sql -c handson_admin -q "SHOW USERS LIKE 'TERRAFORM'"
+snow connection test -c handson_tf                       # 新しいサービス ID: Status: OK
+```
+期待する結果:
+- `HANDSON_ACCOUNT_MONITOR`(`level` が `ACCOUNT`、`credit_quota` が `80.00`)と、ウェアハウスのモニター 4 つ(`LOAD_WH_MONITOR` 10、`TRANSFORM_WH_MONITOR` 10、`BI_WH_MONITOR` 10、`MONITOR_WH_MONITOR` 5)。
+- `TERRAFORM` ユーザーが 1 行(type は `SERVICE`)。
+- Snowsight でも同じモニターを確認できます: **Admin > Cost management > Resource monitors**(ロール `ACCOUNTADMIN`)。
 
 ---
 <!-- nav:bottom -->

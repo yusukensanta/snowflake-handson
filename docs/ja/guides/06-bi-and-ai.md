@@ -9,8 +9,8 @@
 ## 1. BI: Snowflake 内の Streamlit ダッシュボード
 `apps/streamlit/` は小さなダッシュボードです(地域別の保険金請求と、プラットフォームのクレジット)。Snowflake の中で動くため、データはアカウントの外に出ず、ロールのマスキングポリシーと行アクセスポリシーもそのまま適用されます。管理者ロールではなく、最小権限のロールでデプロイしてください:
 ```bash
-snow sql -c handson_tf -q "PUT file://apps/streamlit/* @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims AUTO_COMPRESS=FALSE OVERWRITE=TRUE"   # ステージ作成後
-snow sql -c handson_tf -f sql/streamlit.sql
+snow sql -c handson_tf -f sql/streamlit.sql   # ステージ、権限、アプリを作成
+snow sql -c handson_tf -q "PUT file://apps/streamlit/* @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims AUTO_COMPRESS=FALSE OVERWRITE=TRUE"   # アプリのファイルをアップロード
 ```
 Snowsight(Projects > Streamlit)を `CLAIMS_ADJUSTER` で開くと、Seoul の行だけが表示されます。ロールを切り替えると別のビューになります。ステータスの絞り込みは `queries.py` でホワイトリスト化されており(ユニットテスト済み)、ユーザー入力を文字列連結することはありません。
 
@@ -27,7 +27,13 @@ Snowsight(Projects > Streamlit)を `CLAIMS_ADJUSTER` で開くと、Seoul の行
 ダッシュボード: 約 2 クレジット(BI_WH、自動サスペンド 60 秒)。AI: 上限設定の範囲で最大 5 クレジット。スキップすれば 0。
 
 ## 確認
-`CLAIMS_ADJUSTER` でアプリが開き、地域だけが表示されること。AI を有効にした場合は、機微な列への質問が拒否またはマスクされること。
+
+```bash
+snow sql -c handson_tf -q "SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS"          # CLAIMS_DASH
+snow sql -c handson_tf -q "LIST @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims"       # app.py などアップロードしたファイル
+scripts/verify-step 06
+```
+そのあと Snowsight の **Projects > Streamlit > CLAIMS_DASH** を開きます。`CLAIMS_ADJUSTER` では地域だけが表示されること。AI を有効にした場合は、機微な列への質問が拒否またはマスクされること。
 
 ---
 <!-- nav:bottom -->

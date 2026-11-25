@@ -29,7 +29,16 @@ The Terraform provider does not read `connections.toml` (that is the CLI's file)
 About 1 credit for the verification queries.
 
 ## Verify
-Second `terraform plan` prints `No changes`, and `scripts/cost-guard --status` shows a `resource_monitor` for each warehouse.
+
+```bash
+terraform -chdir=terraform/envs/handson plan   # No changes. Your infrastructure matches the configuration.
+scripts/attach-monitors
+scripts/cost-guard --status                    # each of LOAD_WH, TRANSFORM_WH, BI_WH, MONITOR_WH shows its own resource_monitor
+snow sql -c handson_tf -q "SHOW ROLES LIKE 'CLAIMS_ADJUSTER'"
+snow sql -c handson_tf -q "SHOW GRANTS TO ROLE CLAIMS_ADJUSTER"   # access roles and USAGE on a warehouse, no direct table grants
+scripts/verify-step 02
+```
+Expect `[info] step 02 verified`. In Snowsight (role `TF_ADMIN`), **Admin > Warehouses** lists the four warehouses, all `Suspended` when idle. `COMPUTE_WH`, `SNOWFLAKE_LEARNING_WH` and `SYSTEM$STREAMLIT_NOTEBOOK_WH` are trial defaults with no monitor of their own; the account monitor covers them.
 
 ## 3. Import lab: adopt hand-built objects
 Real teams start with click-ops. Terraform can adopt those objects without recreating them.
@@ -48,7 +57,11 @@ To discover attributes of an existing object, write only the `import` block and 
 Under 0.1 credit (an XS warehouse that never runs queries).
 
 ## Verify (import lab)
-After step 4: `No changes. Your infrastructure matches the configuration.`
+
+```bash
+terraform -chdir=terraform/envs/handson plan   # after step 4: No changes. Your infrastructure matches the configuration.
+```
+After step 5 (the drift), the same command must show `LAB_IMPORT_WH` changing `warehouse_size` back to `XSMALL`. Confirm the object in Snowflake with `snow sql -c handson_tf -q "SHOW WAREHOUSES LIKE 'LAB_IMPORT_WH'"`.
 
 ## 4. Databases, access roles, personas and tags
 After `apply`, Terraform has created: `HANBIT_RAW/CURATED/MARTS/GOV`, 36 access roles (`RAW_CLAIMS_RO`, `CURATED_LENDING_RW`, ...), the nine persona roles with their access-role grants and warehouse `USAGE`, and the `SENSITIVITY` tag in `HANBIT_GOV.TAGS`.

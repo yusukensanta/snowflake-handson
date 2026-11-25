@@ -29,7 +29,16 @@ Terraform プロバイダは `connections.toml`(CLI 用のファイル)を読ま
 検証クエリで約 1 クレジット。
 
 ## 確認
-2 回目の `terraform plan` が `No changes` と表示され、`scripts/cost-guard --status` で各ウェアハウスに `resource_monitor` が表示されること。
+
+```bash
+terraform -chdir=terraform/envs/handson plan   # No changes. Your infrastructure matches the configuration.
+scripts/attach-monitors
+scripts/cost-guard --status                    # LOAD_WH、TRANSFORM_WH、BI_WH、MONITOR_WH のそれぞれに resource_monitor が表示される
+snow sql -c handson_tf -q "SHOW ROLES LIKE 'CLAIMS_ADJUSTER'"
+snow sql -c handson_tf -q "SHOW GRANTS TO ROLE CLAIMS_ADJUSTER"   # アクセスロールとウェアハウスの USAGE。テーブルへの直接付与はない
+scripts/verify-step 02
+```
+`[info] step 02 verified` と表示されること。Snowsight(ロール `TF_ADMIN`)の **Admin > Warehouses** に 4 つのウェアハウスが並び、アイドル時は `Suspended` になります。`COMPUTE_WH`、`SNOWFLAKE_LEARNING_WH`、`SYSTEM$STREAMLIT_NOTEBOOK_WH` はトライアルの既定で、専用のモニターはありません。アカウントモニターがこれらをカバーします。
 
 ## 3. import ラボ: 手作業で作ったオブジェクトを取り込む
 実際のチームは画面操作から始まります。Terraform は、既存のオブジェクトを作り直さずに管理下へ取り込めます。
@@ -48,7 +57,11 @@ Terraform プロバイダは `connections.toml`(CLI 用のファイル)を読ま
 0.1 クレジット未満(クエリを実行しない XS ウェアハウス)。
 
 ## 確認(import ラボ)
-手順 4 の後に `No changes. Your infrastructure matches the configuration.` と表示されること。
+
+```bash
+terraform -chdir=terraform/envs/handson plan   # 手順 4 の後: No changes. Your infrastructure matches the configuration.
+```
+手順 5(ドリフト)の後は、同じコマンドで `LAB_IMPORT_WH` の `warehouse_size` が `XSMALL` に戻る差分が表示されること。Snowflake 側のオブジェクトは `snow sql -c handson_tf -q "SHOW WAREHOUSES LIKE 'LAB_IMPORT_WH'"` で確認できます。
 
 ## 4. データベース、アクセスロール、ペルソナ、タグ
 `apply` 後、Terraform は次を作成します: `HANBIT_RAW/CURATED/MARTS/GOV`、36 個のアクセスロール(`RAW_CLAIMS_RO`、`CURATED_LENDING_RW` など)、アクセスロールとウェアハウス `USAGE` を付与された 9 個のペルソナロール、`HANBIT_GOV.TAGS` の `SENSITIVITY` タグ。

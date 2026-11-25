@@ -28,7 +28,13 @@ scripts/cost-guard --suspend-all     # suspends warehouses and Dynamic Tables
 About 8 credits, mostly the first full refresh of 1.2 million rows on XS.
 
 ## Verify (transform)
-`SELECT COUNT(*) FROM HANBIT_CURATED.CLAIMS.CLAIMS` equals the RAW count; `SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED` shows `scheduling_state = ACTIVE`.
+
+```bash
+snow sql -c handson_tf -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED"   # 6 rows, scheduling_state ACTIVE
+snow sql -c handson_tf --warehouse TRANSFORM_WH -q "SELECT (SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS) AS raw_n, (SELECT COUNT(*) FROM HANBIT_CURATED.CLAIMS.CLAIMS) AS curated_n"
+scripts/verify-step 05
+```
+Expect six Dynamic Tables and `raw_n` equal to `curated_n`. Right after creation the first refresh may still be running; wait a few minutes and re-run. In Snowsight: **Monitoring > Dynamic tables**.
 
 ## 2. Iceberg v3 on Snowflake-managed storage
 Apache Iceberg is an open table format: data is Parquet files plus metadata that any engine can read. With **Snowflake as the catalog and Snowflake-managed storage** you get an open-format table without owning an S3 bucket or IAM role (the AWS-bucket variant is in the appendix and is never applied by the repo owner). Cloud analogue: a Glue/Hive-style Iceberg table, minus the storage plumbing.
@@ -54,7 +60,12 @@ Snowflake-managed Iceberg storage or v3 may not be enabled in ap-northeast-2 for
 About 1 credit (one CTAS on XS plus storage).
 
 ## Verify (Iceberg)
-`SELECT COUNT(*) FROM HANBIT_MARTS.LAKE.CLAIMS_FACT` equals the curated claims count; the `ICEBERG_VERSION` parameter shows `3`.
+
+```bash
+snow sql -c handson_tf --warehouse TRANSFORM_WH -q "SELECT COUNT(*) AS n FROM HANBIT_MARTS.LAKE.CLAIMS_FACT"
+snow sql -c handson_tf -q "SHOW PARAMETERS LIKE 'ICEBERG_VERSION' IN TABLE HANBIT_MARTS.LAKE.CLAIMS_FACT"
+```
+Expect `n` equal to the curated claims count and the parameter value `3`. If `sql/iceberg.sql` failed, use the Fallback above and continue.
 
 ---
 <!-- nav:bottom -->

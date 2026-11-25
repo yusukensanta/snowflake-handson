@@ -37,7 +37,14 @@ Then prove it with the access matrix (guide 04 §Proof, command in `scripts/acce
 About 6 credits including classification and policy tests.
 
 ## Verify
-`scripts/access-matrix` (guide 04 §Proof) passes all core cases.
+
+```bash
+snow sql -c handson_tf -q "SHOW MASKING POLICIES IN SCHEMA HANBIT_GOV.POLICIES"      # MASK_SENSITIVE_STRING, MASK_SENSITIVE_NUMBER
+snow sql -c handson_tf -q "SHOW ROW ACCESS POLICIES IN SCHEMA HANBIT_GOV.POLICIES"   # RAP_REGION
+scripts/access-matrix                                                               # every core case passes
+scripts/verify-step 04
+```
+Expect the two masking policies and `RAP_REGION` in the lists, and no `FAIL` line from the matrix. Prerequisite: guide 05 section 1 is done (CURATED tables exist) and `source scripts/tf-env` is active for the `terraform` commands above. To see it as a persona in Snowsight, run `USE ROLE CLAIMS_ADJUSTER;` and `SELECT * FROM HANBIT_CURATED.CLAIMS.CLAIMS LIMIT 5;` (needs `grant_personas_to_user` from guide 02; you see only Seoul rows, and this role may read diagnosis while other personas see it masked, which the access matrix checks).
 
 ## Proof: the access matrix
 Governance you cannot test is a claim, not a control. `sql/matrix/access-matrix.yaml` lists persona × object × expectation (`visible`, `masked`, `hashed`, `denied`, `rows`, `regions`). The runner switches role with `USE ROLE`, runs the query, and compares.
