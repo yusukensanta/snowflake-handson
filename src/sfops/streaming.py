@@ -25,7 +25,7 @@ class SdkSink:  # pragma: no cover - needs the real SDK and a live account; veri
     """Adapter over snowflake.ingest.streaming (table mode: pipe is `<TABLE>-STREAMING`)."""
 
     def __init__(self, conn_name: str, domain: str, database: str = "HANBIT_RAW") -> None:
-        from snowflake.ingest.streaming import StreamingIngestClient
+        from snowflake.ingest.streaming import StreamingIngestClient  # ty: ignore[import-not-found]  # optional extra "streaming"
 
         profile = load_profile(conn_name)
         self._client = StreamingIngestClient.from_table(

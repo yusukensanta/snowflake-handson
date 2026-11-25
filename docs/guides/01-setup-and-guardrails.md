@@ -1,5 +1,9 @@
 # 01 · Setup and guardrails
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [00 Orientation](00-orientation.md) · [02 RBAC & Terraform](02-rbac-and-terraform.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/01-setup-and-guardrails.md](../ja/guides/01-setup-and-guardrails.md)
 
 Order matters: tools → connection → preflight → guardrails (resource monitor) → anything that uses compute.
@@ -57,3 +61,8 @@ Cloud mapping: resource monitor ≈ AWS Budgets action / GCP budget with a Pub/S
 
 ## Verify (guardrails)
 `scripts/cost-guard --status` lists `HANDSON_ACCOUNT_MONITOR` with quota 80.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [00 Orientation](00-orientation.md) · [02 RBAC & Terraform](02-rbac-and-terraform.md) →
+<!-- /nav:bottom -->

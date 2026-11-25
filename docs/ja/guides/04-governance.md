@@ -1,5 +1,9 @@
 # 04 · ガバナンス: 列・行・ロールによる制御
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [05 変換と Iceberg](05-transform-and-iceberg.md) · [06 BI と AI](06-bi-and-ai.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/04-governance.md](../../guides/04-governance.md)
 
 **前提:** CURATED テーブルが存在すること(ガイド 05 の §1、Dynamic Tables)。ペルソナは設計上 RAW にアクセスできません。
@@ -44,3 +48,8 @@ scripts/access-matrix               # コアのケース(6 ペルソナ)。--str
 - `denied` が成功と判定されるのは、権限エラーまたはポリシーエラーの場合だけです。ネットワークやウェアハウスのエラーは実行を中断します(そうでないと「成功」に見えてしまうため)。
 - **わざと壊す:** `ALTER TAG HANBIT_GOV.TAGS.SENSITIVITY UNSET MASKING POLICY HANBIT_GOV.POLICIES.MASK_SENSITIVE_STRING;` を実行して再実行すると、`masked` のケースが「leak」で失敗します。`terraform apply` で元に戻します。
 - その後、マトリクス自身の読み取りを監査します: `sql/audit.sql`(ガイド 07)。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [05 変換と Iceberg](05-transform-and-iceberg.md) · [06 BI と AI](06-bi-and-ai.md) →
+<!-- /nav:bottom -->

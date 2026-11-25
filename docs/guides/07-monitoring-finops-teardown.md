@@ -1,5 +1,9 @@
 # 07 · Monitoring, FinOps and teardown
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [06 BI & AI](06-bi-and-ai.md) · [08 CI & apply](08-ci-and-apply.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/07-monitoring-finops-teardown.md](../ja/guides/07-monitoring-finops-teardown.md)
 
 ## 1. Platform and pipeline monitoring
@@ -52,3 +56,8 @@ Under 0.5 credits; teardown stops all recurring cost.
 
 ## Verify (FinOps and teardown)
 `scripts/cost-report` prints a total and status; after teardown `SHOW WAREHOUSES` lists none of ours.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [06 BI & AI](06-bi-and-ai.md) · [08 CI & apply](08-ci-and-apply.md) →
+<!-- /nav:bottom -->

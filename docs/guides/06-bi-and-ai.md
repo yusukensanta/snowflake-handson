@@ -1,5 +1,9 @@
 # 06 · BI and AI
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [04 Governance](04-governance.md) · [07 Monitoring & FinOps](07-monitoring-finops-teardown.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/06-bi-and-ai.md](../ja/guides/06-bi-and-ai.md)
 
 ## 1. BI: a Streamlit dashboard inside Snowflake
@@ -24,3 +28,8 @@ Dashboard: about 2 credits (BI_WH, auto-suspend 60 s). AI: budget up to 5 credit
 
 ## Verify
 The app opens and shows regions for `CLAIMS_ADJUSTER` only; if AI is enabled, the sensitive-column question is refused or masked.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [04 Governance](04-governance.md) · [07 Monitoring & FinOps](07-monitoring-finops-teardown.md) →
+<!-- /nav:bottom -->

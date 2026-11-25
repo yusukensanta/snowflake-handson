@@ -1,5 +1,9 @@
 # 00 · 概要
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · [01 セットアップ](01-setup-and-guardrails.md) →
+<!-- /nav:top -->
+
 **対象読者:** AWS/GCP などの経験があり、Snowflake は初めてのデータエンジニア。
 **題材:** Hanbit Insurance & Capital(架空): 引受、保険金請求(健康情報)、融資(信用情報)、経理、リスク/不正、マーケティング。
 **English:** [../../guides/00-orientation.md](../../guides/00-orientation.md)
@@ -41,3 +45,8 @@
 
 ## 確認
 `scripts/check-secrets` が `[check-secrets] clean` を出力すること。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · [01 セットアップ](01-setup-and-guardrails.md) →
+<!-- /nav:bottom -->

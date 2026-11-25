@@ -1,0 +1,92 @@
+# Plan on pull requests, apply ONLY on main after a human approves the "snowflake-apply" environment.
+# Local `terraform plan` is encouraged; `apply` is deliberately not possible from laptops (see docs/guides/08).
+name: terraform
+on:
+  pull_request:
+    paths: ["terraform/**", ".github/workflows/terraform.yml", "src/hanbit_gen/**"]
+  push:
+    branches: [main]
+    paths: ["terraform/**", ".github/workflows/terraform.yml", "src/hanbit_gen/**"]
+permissions:
+  contents: read
+concurrency:
+  group: terraform-state   # one run at a time against the shared state
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+  TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+  TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
+
+jobs:
+  plan:
+    # Secrets are never exposed to fork PRs; skip them explicitly instead of failing.
+    # Skipped until the HCP Terraform variables exist (guide 08), so an unconfigured repo stays green.
+    if: vars.TF_WORKSPACE != '' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    environment: snowflake-plan   # required reviewers: PR code (even edits to this file) runs with credentials only after approval
+    # Credentials exist only in this job's environment, never workflow-wide. The plan environment should hold a separate READ-ONLY identity (guide 08).
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      SNOWFLAKE_ORGANIZATION_NAME: ${{ secrets.SNOWFLAKE_ORGANIZATION_NAME }}
+      SNOWFLAKE_ACCOUNT_NAME: ${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      SNOWFLAKE_AUTHENTICATOR: SNOWFLAKE_JWT
+      SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with: { terraform_version: 1.17.2, terraform_wrapper: false }
+      - name: prepare inputs
+        env:
+          TFVARS_JSON: ${{ secrets.TFVARS_JSON }}
+        run: |
+          set -eu
+          cp terraform/envs/handson/backend.tf.example terraform/envs/handson/backend.tf
+          uv run python -m hanbit_gen.cli --emit-tag-map terraform/envs/handson/tags.auto.tfvars.json
+          if [ -n "${TFVARS_JSON:-}" ]; then printf '%s' "$TFVARS_JSON" > terraform/envs/handson/ci.auto.tfvars.json; fi
+      - run: terraform -chdir=terraform/envs/handson init -input=false
+      - name: plan
+        run: terraform -chdir=terraform/envs/handson plan -input=false -lock-timeout=120s -var snowflake_profile="" -out=tfplan -no-color | tee plan.txt
+      - name: summary
+        run: |
+          { echo '### terraform plan'; echo '```'; tail -n 200 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # No plan artifact: plan files can embed secrets and artifacts of a public repo are world-readable.
+
+  apply:
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: snowflake-apply   # required reviewers + main only: this is the human gate
+    # Credentials exist only in this job's environment, never workflow-wide. Only the apply environment holds the TF_ADMIN key.
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      SNOWFLAKE_ORGANIZATION_NAME: ${{ secrets.SNOWFLAKE_ORGANIZATION_NAME }}
+      SNOWFLAKE_ACCOUNT_NAME: ${{ secrets.SNOWFLAKE_ACCOUNT_NAME }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      SNOWFLAKE_AUTHENTICATOR: SNOWFLAKE_JWT
+      SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with: { terraform_version: 1.17.2, terraform_wrapper: false }
+      - name: prepare inputs
+        env:
+          TFVARS_JSON: ${{ secrets.TFVARS_JSON }}
+        run: |
+          set -eu
+          cp terraform/envs/handson/backend.tf.example terraform/envs/handson/backend.tf
+          uv run python -m hanbit_gen.cli --emit-tag-map terraform/envs/handson/tags.auto.tfvars.json
+          if [ -n "${TFVARS_JSON:-}" ]; then printf '%s' "$TFVARS_JSON" > terraform/envs/handson/ci.auto.tfvars.json; fi
+      - run: terraform -chdir=terraform/envs/handson init -input=false
+      # Re-plan after approval so what is applied is exactly what this job saw, then apply that file.
+      - run: terraform -chdir=terraform/envs/handson plan -input=false -lock-timeout=120s -var snowflake_profile="" -out=tfplan -no-color
+      - run: terraform -chdir=terraform/envs/handson apply -input=false -lock-timeout=120s tfplan

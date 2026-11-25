@@ -1,5 +1,9 @@
 # 07 · 監視、FinOps、後片付け
 
+<!-- nav:top -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [06 BI と AI](06-bi-and-ai.md) · [08 CI と apply](08-ci-and-apply.md) →
+<!-- /nav:top -->
+
 **English:** [../../guides/07-monitoring-finops-teardown.md](../../guides/07-monitoring-finops-teardown.md)
 
 ## 1. プラットフォームとパイプラインの監視
@@ -52,3 +56,8 @@ scripts/teardown --yes         # コンピュートをサスペンドし、terra
 
 ## 確認(FinOps と後片付け)
 `scripts/cost-report` が合計とステータスを表示すること。後片付け後は `SHOW WAREHOUSES` に自分たちのウェアハウスが残っていないこと。
+
+---
+<!-- nav:bottom -->
+[🏠 7日間の流れ](../../../README.ja.md#7日間の流れ) · ← [06 BI と AI](06-bi-and-ai.md) · [08 CI と apply](08-ci-and-apply.md) →
+<!-- /nav:bottom -->

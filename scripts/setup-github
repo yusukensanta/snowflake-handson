@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Create the GitHub environments, variables, secrets and branch protection that the CI/CD workflows need,
+# from your laptop via the GitHub CLI (REST API underneath). Idempotent: re-run to rotate secrets or fix drift.
+#
+# Usage: scripts/setup-github [--dry-run] [--repo OWNER/NAME] [--reviewer LOGIN] [--prevent-self-review]
+#                             [--skip-secrets] [--branch-protection]
+# Needs: gh authenticated with repo admin rights (`gh auth login`). Secret values are read from your shell
+# environment or files and sent straight to GitHub; they are never printed, logged or written to disk.
+#
+# Inputs (export before running; PLAN_/APPLY_ prefixed value wins, else the unprefixed one):
+#   TF_CLOUD_ORGANIZATION, TF_WORKSPACE            (repo-level variables)
+#   {PLAN_,APPLY_}SNOWFLAKE_ORGANIZATION_NAME, _ACCOUNT_NAME, _USER, _ROLE
+#   {PLAN_,APPLY_}SNOWFLAKE_PRIVATE_KEY_FILE       path to the PEM key for that identity
+#   {PLAN_,APPLY_}SNOWFLAKE_PRIVATE_KEY_PASSPHRASE (optional)
+#   TF_API_TOKEN                                   HCP Terraform token
+#   TFVARS_JSON_FILE                               (optional) private tfvars as JSON
+set -eu
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+repo=""; reviewer=""; self_review=false; secrets=1; protect=0
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --repo) repo="$2"; shift 2 ;;
+    --reviewer) reviewer="$2"; shift 2 ;;
+    --prevent-self-review) self_review=true; shift ;;
+    --skip-secrets) secrets=0; shift ;;
+    --branch-protection) protect=1; shift ;;
+    *) log_err "unknown arg $1"; exit 64 ;;
+  esac
+done
+require_cmd gh
+gh auth status >/dev/null 2>&1 || { log_err "gh is not authenticated: run 'gh auth login'"; exit 1; }
+[ -n "$repo" ] || repo="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+[ -n "$reviewer" ] || reviewer="$(gh api user --jq .login)"
+reviewer_id="$(gh api "users/$reviewer" --jq .id)"
+log_info "repo=$repo reviewer=$reviewer prevent_self_review=$self_review"
+if [ "$self_review" = false ]; then
+  log_info "note: self-review is allowed (solo owner). Add a second reviewer and --prevent-self-review for a real four-eyes gate."
+fi
+
+api() { # api METHOD PATH [json-body]; body from stdin-safe arg
+  if [ "$DRY_RUN" = "1" ]; then printf '[dry-run] gh api -X %s %s %s\n' "$1" "$2" "${3:-}"; return 0; fi
+  if [ -n "${3:-}" ]; then printf '%s' "$3" | gh api -X "$1" "$2" --input - >/dev/null
+  else gh api -X "$1" "$2" >/dev/null; fi
+}
+
+make_env() { # name, restrict_to_main(1/0)
+  local name="$1" restrict="$2" policy
+  if [ "$restrict" = 1 ]; then policy='{"protected_branches":false,"custom_branch_policies":true}'; else policy=null; fi
+  api PUT "repos/$repo/environments/$name" \
+    "{\"wait_timer\":0,\"prevent_self_review\":$self_review,\"reviewers\":[{\"type\":\"User\",\"id\":$reviewer_id}],\"deployment_branch_policy\":$policy}"
+  if [ "$restrict" = 1 ]; then
+    # 422 = policy already exists; tolerate for idempotency.
+    if [ "$DRY_RUN" = "1" ]; then printf '[dry-run] gh api -X POST repos/%s/environments/%s/deployment-branch-policies name=main\n' "$repo" "$name"
+    else gh api -X POST "repos/$repo/environments/$name/deployment-branch-policies" -f name=main -f type=branch >/dev/null 2>&1 || true; fi
+  fi
+  log_info "environment $name ready"
+}
+
+pick() { # pick PREFIX NAME -> value of PREFIX_NAME else NAME ("" if unset)
+  local v="${1}_${2}"; v="${!v:-}"; [ -n "$v" ] || { v="${2}"; v="${!v:-}"; }; printf '%s' "$v"
+}
+
+set_var() { # scope-args... NAME VALUE
+  local name="$1" val="$2"; shift 2
+  [ -n "$val" ] || { log_info "skip variable $name (unset)"; return 0; }
+  if [ "$DRY_RUN" = "1" ]; then printf '[dry-run] gh variable set %s %s (value hidden)\n' "$name" "$*"; return 0; fi
+  gh variable set "$name" --repo "$repo" --body "$val" "$@"
+}
+
+set_secret() { # NAME ENV VALUE
+  local name="$1" env="$2" val="$3"
+  [ -n "$val" ] || { log_info "skip secret $name in $env (unset)"; return 0; }
+  if [ "$DRY_RUN" = "1" ]; then printf '[dry-run] gh secret set %s --env %s (value hidden)\n' "$name" "$env"; return 0; fi
+  printf '%s' "$val" | gh secret set "$name" --repo "$repo" --env "$env"
+}
+
+read_key() { # path -> contents (empty if no path); fails loudly on a missing file
+  [ -n "$1" ] || return 0
+  [ -f "$1" ] || { log_err "key file not found: $1"; exit 1; }
+  cat "$1"
+}
+
+make_env snowflake-plan 0     # PR code runs here after review: no branch restriction
+make_env snowflake-apply 1    # main only
+
+set_var TF_CLOUD_ORGANIZATION "${TF_CLOUD_ORGANIZATION:-}"
+set_var TF_WORKSPACE "${TF_WORKSPACE:-}"
+
+if [ "$secrets" = 1 ]; then
+  for pair in "PLAN:snowflake-plan" "APPLY:snowflake-apply"; do
+    p="${pair%%:*}"; e="${pair##*:}"
+    set_var SNOWFLAKE_ROLE "$(pick "$p" SNOWFLAKE_ROLE)" --env "$e"
+    for n in SNOWFLAKE_ORGANIZATION_NAME SNOWFLAKE_ACCOUNT_NAME SNOWFLAKE_USER SNOWFLAKE_PRIVATE_KEY_PASSPHRASE; do
+      set_secret "$n" "$e" "$(pick "$p" "$n")"
+    done
+    set_secret SNOWFLAKE_PRIVATE_KEY "$e" "$(read_key "$(pick "$p" SNOWFLAKE_PRIVATE_KEY_FILE)")"
+    set_secret TF_API_TOKEN "$e" "${TF_API_TOKEN:-}"
+    [ -z "${TFVARS_JSON_FILE:-}" ] || set_secret TFVARS_JSON "$e" "$(read_key "$TFVARS_JSON_FILE")"
+  done
+fi
+
+if [ "$protect" = 1 ]; then
+  api PUT "repos/$repo/branches/main/protection" '{"required_status_checks":{"strict":true,"contexts":["python","shell","secrets","terraform-validate"]},"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0},"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}'
+  log_info "branch protection on main: PR + required CI checks, no force-push"
+fi
+log_info "done. Verify: gh api repos/$repo/environments --jq '.environments[].name'"

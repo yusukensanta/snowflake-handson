@@ -1,5 +1,9 @@
 # 03 · Ingestion
 
+<!-- nav:top -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [02 RBAC & Terraform](02-rbac-and-terraform.md) · [05 Transform & Iceberg](05-transform-and-iceberg.md) →
+<!-- /nav:top -->
+
 **Japanese version:** [../ja/guides/03-ingestion.md](../ja/guides/03-ingestion.md)
 
 You need no AWS account: files go to a Snowflake **internal stage** (encrypted by Snowflake), and rows can also be pushed with **Snowpipe Streaming**.
@@ -39,3 +43,8 @@ About 8 credits (XS `LOAD_WH`, auto-suspend 60 s). Streaming is billed per inges
 
 ## Verify
 `SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS` equals `--rows` (200,000 by default); the second `scripts/load-batch` loads nothing.
+
+---
+<!-- nav:bottom -->
+[🏠 7-day map](../../README.md#7-day-map) · ← [02 RBAC & Terraform](02-rbac-and-terraform.md) · [05 Transform & Iceberg](05-transform-and-iceberg.md) →
+<!-- /nav:bottom -->
