@@ -9,12 +9,13 @@
 ## 1. サービス ID として Terraform を実行
 ```bash
 export PRIVATE_KEY_PASSPHRASE='...'          # シェルで入力し、ファイルには書かない
+source scripts/tf-env                         # [handson_tf] プロファイルからプロバイダ用の SNOWFLAKE_* をエクスポート
 terraform -chdir=terraform/envs/handson init
 terraform -chdir=terraform/envs/handson plan  # ウェアハウス(XS、auto-suspend 60 秒)、ペルソナロール 9 個、モニター 4 個
 terraform -chdir=terraform/envs/handson apply
 terraform -chdir=terraform/envs/handson plan  # "No changes" になること
 ```
-プロバイダは `versions.tf` で固定しています(`2.23.0`)。リソース名は推測ではなくプロバイダのスキーマから確認しました。集約ポリシー、予算、データメトリックファンクションの付与にはリソースがないため、`sql/` から適用します。
+Terraform プロバイダは `connections.toml`(CLI 用のファイル)を読まないため、`scripts/tf-env` がプロファイルをプロバイダと CI が使う `SNOWFLAKE_*` 変数に変換します。新しいターミナルを開くたびに source してください。プロバイダは `versions.tf` で固定しています(`2.23.0`)。リソース名は推測ではなくプロバイダのスキーマから確認しました。集約ポリシー、予算、データメトリックファンクションの付与にはリソースがないため、`sql/` から適用します。
 
 ## 2. RBAC のパターン
 - **オブジェクトの所有**は Terraform のロールが持ち、人間はオブジェクトを所有しません。

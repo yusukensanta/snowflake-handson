@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Source this (bash or zsh) before running terraform locally:   source scripts/tf-env [profile]
+# The Snowflake Terraform provider does NOT read ~/.snowflake/connections.toml (that is the CLI's file; the provider's own
+# ~/.snowflake/config uses a different schema). This reads the CLI profile [handson_tf] written by scripts/bootstrap and
+# exports the SNOWFLAKE_* variables the provider reads, the same ones CI uses (guide 08). Nothing is written to disk.
+# Needs PRIVATE_KEY_PASSPHRASE in your shell. Do not `set -e` in the shell that sources this.
+# shellcheck disable=SC2317  # `exit` is the fallback when executed instead of sourced
+_tf_env_out="$(python3 - "${1:-handson_tf}" <<'PY'
+import os, pathlib, shlex, sys, tomllib
+
+profile = sys.argv[1]
+path = pathlib.Path.home() / ".snowflake" / "connections.toml"
+
+
+def fail(msg):
+    print(f"[error] {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+if not path.exists():
+    fail(f"{path} not found; see guide 01")
+conn = tomllib.loads(path.read_text()).get(profile)
+if conn is None:
+    fail(f"profile [{profile}] not in {path}; run scripts/bootstrap")
+passphrase = os.environ.get("PRIVATE_KEY_PASSPHRASE")
+if not passphrase:
+    fail("export PRIVATE_KEY_PASSPHRASE first (guide 01)")
+if "-" not in conn.get("account", ""):
+    fail("account must look like <org>-<account>")
+org, acct = conn["account"].split("-", 1)
+key = pathlib.Path(conn["private_key_file"]).expanduser().read_text()
+env = {
+    "SNOWFLAKE_ORGANIZATION_NAME": org,
+    "SNOWFLAKE_ACCOUNT_NAME": acct,
+    "SNOWFLAKE_USER": conn["user"],
+    "SNOWFLAKE_ROLE": conn.get("role", ""),
+    "SNOWFLAKE_AUTHENTICATOR": "SNOWFLAKE_JWT",
+    "SNOWFLAKE_PRIVATE_KEY": key,
+    "SNOWFLAKE_PRIVATE_KEY_PASSPHRASE": passphrase,
+}
+for name, value in env.items():
+    if value:
+        print(f"export {name}={shlex.quote(value)}")
+PY
+)" || { unset _tf_env_out; return 1 2>/dev/null || exit 1; }
+eval "$_tf_env_out"
+unset _tf_env_out
+echo "[info] SNOWFLAKE_* exported for terraform (account ${SNOWFLAKE_ORGANIZATION_NAME}-***, user ${SNOWFLAKE_USER}, role ${SNOWFLAKE_ROLE:-default})"

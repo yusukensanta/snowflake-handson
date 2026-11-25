@@ -1,7 +1,7 @@
 variable "snowflake_profile" {
-  description = "connections.toml profile written by scripts/bootstrap. Empty = use SNOWFLAKE_* env vars (CI)."
+  description = "Provider profile in ~/.snowflake/config (a different file and schema from the CLI's connections.toml). Empty = use SNOWFLAKE_* env vars: `source scripts/tf-env` locally, secrets in CI."
   type        = string
-  default     = "handson_tf"
+  default     = ""
 }
 
 variable "preview_features" {
