@@ -30,6 +30,12 @@ resource "snowflake_tag" "sensitivity" {
   name                   = "SENSITIVITY"
   ordered_allowed_values = ["PII", "HEALTH", "CREDIT", "FINANCIAL"]
   comment                = "Data sensitivity class; masking policies attach to this tag"
+
+  # The masking policies are attached by snowflake_execute.tag_masking below. The tag resource reads them back from Snowflake,
+  # and without this a plan shows them as removed; applying that plan would unset the masking.
+  lifecycle {
+    ignore_changes = [masking_policies]
+  }
 }
 
 locals {
