@@ -9,12 +9,13 @@
 ## 1. Run Terraform as the service identity
 ```bash
 export PRIVATE_KEY_PASSPHRASE='...'          # typed in your shell, never written to a file
+source scripts/tf-env                         # exports SNOWFLAKE_* for the provider from the [handson_tf] profile
 terraform -chdir=terraform/envs/handson init
 terraform -chdir=terraform/envs/handson plan  # warehouses (XS, auto-suspend 60 s), 9 persona roles, 4 monitors
 terraform -chdir=terraform/envs/handson apply
 terraform -chdir=terraform/envs/handson plan  # must say: No changes
 ```
-The provider is pinned in `versions.tf` (`2.23.0`); resource names were read from the provider schema, not guessed. Aggregation policies, budgets and data metric function attachments have no resource, so they are applied from `sql/`.
+The Terraform provider does not read `connections.toml` (that is the CLI's file), so `scripts/tf-env` translates the profile into the `SNOWFLAKE_*` variables the provider and CI use. Source it in every new terminal. The provider is pinned in `versions.tf` (`2.23.0`); resource names were read from the provider schema, not guessed. Aggregation policies, budgets and data metric function attachments have no resource, so they are applied from `sql/`.
 
 ## 2. The RBAC pattern
 - **Object ownership** stays with Terraform's role; humans never own objects.

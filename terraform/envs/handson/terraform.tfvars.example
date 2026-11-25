@@ -1,2 +1,2 @@
 # Copy to terraform.tfvars (git-ignored). Values here are not secrets; still keep the real file local.
-snowflake_profile = "handson_tf"
+# snowflake_profile = ""   # default: credentials come from SNOWFLAKE_* env vars (source scripts/tf-env)

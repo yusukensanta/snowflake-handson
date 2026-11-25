@@ -1,4 +1,5 @@
-# Credentials come from ~/.snowflake/connections.toml profile "handson_tf" (key-pair). Nothing secret here.
+# Credentials come from SNOWFLAKE_* env vars: `source scripts/tf-env` locally (reads the CLI profile "handson_tf"), secrets in CI.
+# Nothing secret here. The provider does not read connections.toml itself.
 provider "snowflake" {
   profile                  = var.snowflake_profile == "" ? null : var.snowflake_profile # "" in CI: env vars are used
   preview_features_enabled = var.preview_features
