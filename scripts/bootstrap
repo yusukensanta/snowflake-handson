@@ -15,13 +15,16 @@ while [ $# -gt 0 ]; do
   case "$1" in --connection) conn="$2"; shift 2 ;; --quota) quota="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
 done
 case "$quota" in ''|*[!0-9]*) log_err "--quota must be a whole number of credits"; exit 64 ;; esac
+if [ "$DRY_RUN" != "1" ] && [ -z "${PRIVATE_KEY_PASSPHRASE:-}" ]; then
+  log_err "export PRIVATE_KEY_PASSPHRASE first (guide 01); it unlocks the admin key and is reused to encrypt the Terraform key"; exit 64
+fi
 sf="$HOME/.snowflake"; key="$sf/handson_tf_key.p8"; pub="$sf/handson_tf_key.pub"; cfg="$sf/connections.toml"
 sql() { run snow sql -c "$conn" -q "$1"; }
 
 sql "CREATE RESOURCE MONITOR IF NOT EXISTS HANDSON_ACCOUNT_MONITOR WITH CREDIT_QUOTA = $quota FREQUENCY = MONTHLY START_TIMESTAMP = IMMEDIATELY TRIGGERS ON 50 PERCENT DO NOTIFY ON 75 PERCENT DO NOTIFY ON 90 PERCENT DO NOTIFY ON 95 PERCENT DO SUSPEND ON 100 PERCENT DO SUSPEND_IMMEDIATE"
 sql "ALTER ACCOUNT SET RESOURCE_MONITOR = HANDSON_ACCOUNT_MONITOR"
 sql "CREATE ROLE IF NOT EXISTS TF_ADMIN"
-for p in "CREATE ROLE" "CREATE DATABASE" "CREATE WAREHOUSE" "CREATE INTEGRATION" "CREATE RESOURCE MONITOR" \
+for p in "CREATE ROLE" "CREATE DATABASE" "CREATE WAREHOUSE" "CREATE INTEGRATION" \
          "CREATE NETWORK POLICY" "CREATE USER" "MANAGE GRANTS" "APPLY MASKING POLICY" "APPLY ROW ACCESS POLICY" \
          "APPLY TAG" "APPLY AGGREGATION POLICY" "APPLY PROJECTION POLICY" "ATTACH POLICY" "EXECUTE ALERT" "EXECUTE DATA METRIC FUNCTION" "APPLY AUTHENTICATION POLICY" "APPLY SESSION POLICY"; do
   sql "GRANT $p ON ACCOUNT TO ROLE TF_ADMIN"
@@ -30,12 +33,15 @@ sql "GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE TF_ADMIN"
 sql "GRANT DATABASE ROLE SNOWFLAKE.DATA_METRIC_USER TO ROLE TF_ADMIN"
 
 if [ ! -f "$key" ]; then
-  log_info "generating encrypted key pair (you will be asked for a passphrase; it is never stored)"
+  log_info "generating encrypted key pair (passphrase from \$PRIVATE_KEY_PASSPHRASE; it is never stored)"
   run mkdir -p "$sf"; run chmod 700 "$sf"
   if [ "$DRY_RUN" != "1" ]; then
-    (umask 077; openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -out "$key")
-    openssl pkey -in "$key" -pubout -out "$pub"
+    (umask 077; openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -passout env:PRIVATE_KEY_PASSPHRASE -out "$key")
   else log_info "[dry-run] would create $key and $pub"; fi
+fi
+# Derive the public key whenever it is missing (also repairs a run that stopped after the private key was written).
+if [ "$DRY_RUN" != "1" ] && [ ! -f "$pub" ]; then
+  openssl pkey -in "$key" -passin env:PRIVATE_KEY_PASSPHRASE -pubout -out "$pub"
 fi
 pubkey="<public key body>"
 [ -f "$pub" ] && pubkey="$(grep -v -- '-----' "$pub" | tr -d '\n')"

@@ -84,7 +84,7 @@ scripts/cost-guard --status
 ```
 - **Account resource monitor** `HANDSON_ACCOUNT_MONITOR`: quota 80 credits, notify at 50/75/90 %, suspend at 95 %, `SUSPEND_IMMEDIATE` at 100 %. It must be set by `ACCOUNTADMIN`, so the script creates it, not Terraform.
 - **Why 80 and not 88:** at $4.50/credit $400 is about 88 credits; the gap is a safety margin for credits that bill after a monitor trips. Recompute with your real rate: `--quota $(( 400 * 100 / (rate_cents) ))`, then subtract 10 %.
-- **Service identity:** user `TERRAFORM` (`TYPE = SERVICE`, key-pair only, no password) with role `TF_ADMIN`, which gets only the account privileges Terraform needs. The key is encrypted with a passphrase you type; it lives in `~/.snowflake/`, never in the repo. Export `PRIVATE_KEY_PASSPHRASE` in your shell when running Terraform.
+- **Service identity:** user `TERRAFORM` (`TYPE = SERVICE`, key-pair only, no password) with role `TF_ADMIN`, which gets only the account privileges Terraform needs. The key is encrypted with the passphrase in `PRIVATE_KEY_PASSPHRASE` (the one you exported for the admin key, so a single export serves both connections; bootstrap refuses to run without it). It lives in `~/.snowflake/`, never in the repo. Keep `PRIVATE_KEY_PASSPHRASE` exported when running Terraform.
 - **Warehouse monitors** (Terraform `finops` module): one per warehouse, notify 75/90, suspend 100.
 - **Emergency stop:** `scripts/cost-guard --suspend-all`.
 

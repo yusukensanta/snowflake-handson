@@ -84,7 +84,7 @@ scripts/cost-guard --status
 ```
 - **アカウントのリソースモニター** `HANDSON_ACCOUNT_MONITOR`: 上限 80 クレジット、50/75/90 % で通知、95 % でサスペンド、100 % で `SUSPEND_IMMEDIATE`。設定には `ACCOUNTADMIN` が必要なので、Terraform ではなくスクリプトが作成します。
 - **88 ではなく 80 にする理由:** $4.50/クレジットなら $400 は約 88 クレジットです。差分は、モニターが作動した後に課金されるクレジットに対する安全マージンです。実際の単価で再計算し、約 10 % を引いてください。
-- **サービス ID:** ユーザー `TERRAFORM`(`TYPE = SERVICE`、鍵ペアのみ、パスワードなし)とロール `TF_ADMIN`。Terraform に必要なアカウント権限だけを持ちます。秘密鍵は入力したパスフレーズで暗号化され、`~/.snowflake/` に置かれ、リポジトリには入りません。Terraform 実行時はシェルで `PRIVATE_KEY_PASSPHRASE` を export します。
+- **サービス ID:** ユーザー `TERRAFORM`(`TYPE = SERVICE`、鍵ペアのみ、パスワードなし)とロール `TF_ADMIN`。Terraform に必要なアカウント権限だけを持ちます。秘密鍵は `PRIVATE_KEY_PASSPHRASE` のパスフレーズ(管理者鍵用にエクスポートしたものと同じなので、1 回の export で両方の接続を使えます。未設定だと bootstrap は実行を拒否します)で暗号化され、`~/.snowflake/` に置かれ、リポジトリには入りません。Terraform 実行時も `PRIVATE_KEY_PASSPHRASE` を export したままにします。
 - **ウェアハウスのモニター**(Terraform の `finops` モジュール): ウェアハウスごとに 1 つ。75/90 % で通知、100 % でサスペンド。
 - **緊急停止:** `scripts/cost-guard --suspend-all`。
 
