@@ -10,10 +10,21 @@ set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
 while [ $# -gt 0 ]; do
   case "$1" in --connection) conn="$2"; shift 2 ;; --status) mode=status; shift ;; --suspend-all) mode=suspend; shift ;; *) log_err "unknown arg $1"; exit 64 ;; esac
 done
+# Run a SHOW statement and print only the named columns as JSON (the default table output wraps unreadably).
+show_json() {
+  local q="$1"; shift
+  if [ "$DRY_RUN" = "1" ]; then run snow sql -c "$conn" --format json -q "$q"; return 0; fi
+  snow sql -c "$conn" --format json -q "$q" | python3 -c '
+import sys, json
+keys = sys.argv[1:]
+print(json.dumps([{k: r.get(k) for k in keys} for r in json.load(sys.stdin)], indent=2))' "$@"
+}
 case "$mode" in
   status)
-    run snow sql -c "$conn" -q "SHOW RESOURCE MONITORS"
-    run snow sql -c "$conn" -q "SHOW WAREHOUSES" ;;
+    echo "resource_monitors:"
+    show_json "SHOW RESOURCE MONITORS" name level credit_quota used_credits remaining_credits frequency notify_at suspend_at suspend_immediately_at
+    echo "warehouses:"
+    show_json "SHOW WAREHOUSES" name state size auto_suspend auto_resume resource_monitor ;;
   suspend)
     if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would suspend every started warehouse"; exit 0; fi
     names="$(snow sql -c "$conn" --format json -q "SHOW WAREHOUSES" | python3 -c "import sys,json; print(' '.join(w['name'] for w in json.load(sys.stdin) if w['state']!='SUSPENDED'))")"
