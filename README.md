@@ -46,3 +46,8 @@ Run `scripts/check-secrets` before every commit. See guide 00.
 
 ## License and contributing
 [MIT](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+
+## Questions and sharing
+Use [Discussions](https://github.com/yusukensanta/snowflake-handson/discussions): ask questions (Q&A), suggest guides (Ideas), or tell us how you used the
+hands-on (Show and tell: edition, region, how far you got, credits you actually used). Bugs and doc fixes go to
+issues or pull requests. English or Japanese is fine. Never post account identifiers or credentials.

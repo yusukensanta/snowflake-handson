@@ -45,3 +45,8 @@ Iceberg v3 テーブルとマート → Streamlit による BI と AI。**列・
 
 ## ライセンスとコントリビュート
 [MIT](LICENSE)。[CONTRIBUTING.md](CONTRIBUTING.md) と [SECURITY.md](SECURITY.md) を参照してください。
+
+## 質問と共有
+[Discussions](https://github.com/yusukensanta/snowflake-handson/discussions) を使ってください。質問は Q&A、ガイドの提案は Ideas、使ってみた報告は Show and tell
+(エディション、リージョン、進んだところ、実際に使ったクレジット)へ。不具合やドキュメント修正は Issue か Pull Request へお願いします。
+日本語でも英語でも OK です。アカウント ID や認証情報は絶対に投稿しないでください。

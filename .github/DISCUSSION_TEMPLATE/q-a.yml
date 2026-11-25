@@ -1,0 +1,28 @@
+title: "Question / 質問: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask in English or Japanese (日本語でも英語でも OK).
+        **Never paste account identifiers, usernames, passwords, tokens, keys or Terraform state.**
+        **アカウント ID、ユーザー名、パスワード、トークン、鍵、Terraform の state は貼らないでください。**
+        Found a security problem? Do not post it here; follow [SECURITY.md](https://github.com/yusukensanta/snowflake-handson/blob/main/SECURITY.md).
+        セキュリティ上の問題はここに書かず、SECURITY.md の手順に従ってください。
+  - type: input
+    id: guide
+    attributes:
+      label: Which guide or step? / どのガイド・手順ですか?
+      description: "e.g. 04, masking policy / 例: 「04 マスキングポリシー」"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do, and what happened? / 何をしようとして、何が起きましたか?
+      description: Include the command and the error text with identifiers removed. / コマンドとエラー文(識別子は伏せて)を含めてください。
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Snowflake edition and cloud region / Snowflake のエディションとリージョン

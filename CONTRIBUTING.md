@@ -1,6 +1,8 @@
 # Contributing
 
-Fixes and improvements to the guides are welcome.
+Fixes and improvements to the guides are welcome. For questions, ideas, or to share how you used the hands-on,
+use [Discussions](https://github.com/yusukensanta/snowflake-handson/discussions) instead of an issue; discussion forms live in `.github/DISCUSSION_TEMPLATE/`
+(file name = category slug).
 
 ## Ground rules
 - **Never commit secrets**: account ids, users, passwords, tokens, keys, state, filled `tfvars`. Run `scripts/check-secrets`.

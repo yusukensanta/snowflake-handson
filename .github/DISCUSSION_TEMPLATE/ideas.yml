@@ -1,0 +1,17 @@
+title: "Idea / 提案: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest a new guide, a fix to an existing one, or a different way to run the hands-on. English or Japanese is fine.
+        新しいガイド、既存ガイドの改善、別の進め方などの提案を歓迎します。日本語でも英語でも OK です。
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to see? / どんな内容を希望しますか?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it help learners? / 学習者にどう役立ちますか?
