@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-time bootstrap, run by the human admin (MFA). Creates, in order:
-#   1) account-level resource monitor (hard stop)   -> guardrails BEFORE any workload
+#   1) account-level resource monitor (hard stop) and one monitor per warehouse -> guardrails BEFORE any workload
 #   2) role TF_ADMIN + service user TERRAFORM (key-pair only, no password)
 #   3) an encrypted private key under ~/.snowflake/ and a [handson_tf] connection entry
 # Idempotent. Usage: scripts/bootstrap [--dry-run] [--connection NAME] [--quota CREDITS]
@@ -23,6 +23,10 @@ sql() { run snow sql -c "$conn" -q "$1"; }
 
 sql "CREATE RESOURCE MONITOR IF NOT EXISTS HANDSON_ACCOUNT_MONITOR WITH CREDIT_QUOTA = $quota FREQUENCY = MONTHLY START_TIMESTAMP = IMMEDIATELY TRIGGERS ON 50 PERCENT DO NOTIFY ON 75 PERCENT DO NOTIFY ON 90 PERCENT DO NOTIFY ON 95 PERCENT DO SUSPEND ON 100 PERCENT DO SUSPEND_IMMEDIATE"
 sql "ALTER ACCOUNT SET RESOURCE_MONITOR = HANDSON_ACCOUNT_MONITOR"
+# Warehouses do not exist yet (Terraform creates them); scripts/attach-monitors attaches these afterwards.
+for wq in $WAREHOUSE_MONITORS; do
+  sql "CREATE RESOURCE MONITOR IF NOT EXISTS ${wq%%:*}_MONITOR WITH CREDIT_QUOTA = ${wq##*:} FREQUENCY = MONTHLY START_TIMESTAMP = IMMEDIATELY TRIGGERS ON 75 PERCENT DO NOTIFY ON 90 PERCENT DO NOTIFY ON 100 PERCENT DO SUSPEND ON 110 PERCENT DO SUSPEND_IMMEDIATE"
+done
 sql "CREATE ROLE IF NOT EXISTS TF_ADMIN"
 for p in "CREATE ROLE" "CREATE DATABASE" "CREATE WAREHOUSE" "CREATE INTEGRATION" \
          "CREATE NETWORK POLICY" "CREATE USER" "MANAGE GRANTS" "APPLY MASKING POLICY" "APPLY ROW ACCESS POLICY" \
@@ -54,4 +58,4 @@ if [ "$DRY_RUN" != "1" ] && ! grep -q '^\[handson_tf\]' "$cfg" 2>/dev/null; then
   (umask 077; printf '\n[handson_tf]\naccount = "%s"\nuser = "TERRAFORM"\nauthenticator = "SNOWFLAKE_JWT"\nprivate_key_file = "%s"\nrole = "TF_ADMIN"\nwarehouse = "TRANSFORM_WH"\n' "$acct" "$key" >> "$cfg")
   log_info "added [handson_tf] to $cfg (set PRIVATE_KEY_PASSPHRASE in your shell when running terraform/snow)"
 fi
-log_info "done. Next: scripts/cost-guard --status, then terraform -chdir=terraform/envs/handson init"
+log_info "done. Next: scripts/cost-guard --status, then terraform -chdir=terraform/envs/handson init/apply, then scripts/attach-monitors"

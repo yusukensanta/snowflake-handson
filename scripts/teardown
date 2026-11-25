@@ -22,4 +22,7 @@ for stmt in "DROP DATABASE IF EXISTS HANBIT_OPS" "DROP RESOURCE MONITOR IF EXIST
             "DROP USER IF EXISTS TERRAFORM" "DROP ROLE IF EXISTS TF_ADMIN"; do
   run snow sql -c "$admin" -q "$stmt"
 done
+for wq in $WAREHOUSE_MONITORS; do
+  run snow sql -c "$admin" -q "DROP RESOURCE MONITOR IF EXISTS ${wq%%:*}_MONITOR"
+done
 log_info "done. Also delete ~/.snowflake/*.p8 keys you generated, and cancel the trial if finished."
