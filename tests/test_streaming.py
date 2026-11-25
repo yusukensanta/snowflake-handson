@@ -99,3 +99,18 @@ def test_sdk_properties_requires_account_user_and_key():
 
     with pytest.raises(ValueError, match="private_key_file"):
         sdk_properties({"account": "A-B", "user": "U"}, {})
+
+
+def test_summarize_status_ok_and_failures():
+    from types import SimpleNamespace as NS
+
+    from sfops.streaming import summarize_status
+
+    ok = NS(status_code="ACTIVE", rows_inserted_count=10, rows_error_count=0, last_error_message=None)
+    assert "inserted 10 of 10" in summarize_status(ok, 10)
+    bad = NS(status_code="ACTIVE", rows_inserted_count=0, rows_error_count=10, last_error_message="column mismatch")
+    with pytest.raises(RuntimeError, match="column mismatch"):
+        summarize_status(bad, 10)
+    short = NS(status_code="ACTIVE", rows_inserted_count=4, rows_error_count=0, last_error_message=None)
+    with pytest.raises(RuntimeError, match="fewer rows"):
+        summarize_status(short, 10)

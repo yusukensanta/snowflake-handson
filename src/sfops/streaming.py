@@ -48,6 +48,19 @@ def sdk_properties(profile: dict[str, str], environ: dict[str, str] | None = Non
     return props
 
 
+def summarize_status(status: object, expected_rows: int) -> str:
+    """One line from a channel status. Raises if Snowflake rejected rows or committed fewer than were sent."""
+    inserted = int(getattr(status, "rows_inserted_count", 0) or 0)
+    errors = int(getattr(status, "rows_error_count", 0) or 0)
+    msg = getattr(status, "last_error_message", None)
+    line = f"channel status {getattr(status, 'status_code', '?')}: inserted {inserted} of {expected_rows}, errors {errors}"
+    if errors:
+        raise RuntimeError(f"{line}; last error: {msg}")
+    if inserted < expected_rows:
+        raise RuntimeError(f"{line}; fewer rows than sent")
+    return line
+
+
 class SdkSink:  # pragma: no cover - needs the real SDK and a live account; verified by the owner
     """Adapter over snowflake.ingest.streaming (table mode: pipe is `<TABLE>-STREAMING`)."""
 
@@ -60,12 +73,18 @@ class SdkSink:  # pragma: no cover - needs the real SDK and a live account; veri
             properties=sdk_properties(profile),
         )
         self._channel, _ = self._client.open_channel(f"{domain}_channel")
+        self._last_offset = 0
 
     def append(self, rows: list[dict], end_offset: str) -> None:
         self._channel.append_rows(rows, end_offset_token=end_offset)
+        self._last_offset = int(end_offset)
 
     def flush(self) -> None:
-        self._channel.wait_for_commit(lambda token: True, timeout_seconds=120)
+        # Offset tokens are the running row count (see stream_file), so the commit is done when the committed token reaches it.
+        self._channel.initiate_flush()
+        last = self._last_offset
+        self._channel.wait_for_commit(lambda token: token is not None and int(token) >= last, timeout_seconds=300)
+        print(summarize_status(self._channel.get_channel_status(), last))
 
     def close(self) -> None:
         self._channel.close()
