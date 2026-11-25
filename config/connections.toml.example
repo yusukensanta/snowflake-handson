@@ -1,10 +1,13 @@
 # Copy to ~/.snowflake/connections.toml (chmod 600). NEVER commit the real file.
 # Find <org>-<account> in Snowsight: your name (bottom left) > Account > View account details.
 
-[handson_admin]            # used once for bootstrap and preflight, with MFA in the browser
+[handson_admin]            # used once for bootstrap and preflight; key-pair (JWT), no browser or password
 account = "<org>-<account>"
-user = "<your-user>"
-authenticator = "EXTERNALBROWSER"
+user = "<your-login-name>" # the LOGIN_NAME from `DESC USER "<name>"` (often your email); not necessarily CURRENT_USER()
+authenticator = "SNOWFLAKE_JWT"
+private_key_file = "~/.snowflake/handson_admin_key.p8"   # passphrase: export PRIVATE_KEY_PASSPHRASE, never write it here
 role = "ACCOUNTADMIN"
 
+# Why not EXTERNALBROWSER: it needs an SSO identity provider, which trial accounts (including Google sign-up) do not have;
+# it fails with error 390190. Accounts that do have SSO may use authenticator = "EXTERNALBROWSER" instead.
 # [handson_tf] is written by scripts/bootstrap (key-pair, role TF_ADMIN). Do not add passwords here.

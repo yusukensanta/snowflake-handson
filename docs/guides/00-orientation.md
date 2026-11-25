@@ -21,7 +21,8 @@
 
 ## Security baseline (this repo models what it teaches)
 - No account ids, passwords, tokens, keys or Terraform state are committed. Templates are `*.example`.
-- Service users use key-pair authentication; humans use MFA; `ACCOUNTADMIN` is for bootstrap only.
+- Service users use key-pair authentication; humans use MFA in the browser. `ACCOUNTADMIN` is for bootstrap only, through a
+  short-lived key-pair admin connection that you remove at teardown (guide 01).
 - Data is synthetic and seeded; ID numbers have an invalid check digit so they match no real person.
 - Run `scripts/check-secrets` before every commit.
 
