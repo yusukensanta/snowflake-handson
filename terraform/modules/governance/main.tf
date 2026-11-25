@@ -176,10 +176,8 @@ resource "snowflake_authentication_policy" "service" {
   authentication_methods = ["KEYPAIR"]
 }
 
-resource "snowflake_user_authentication_policy_attachment" "terraform" {
-  user_name                  = "TERRAFORM"
-  authentication_policy_name = snowflake_authentication_policy.service.fully_qualified_name
-}
+# AP_SERVICE is attached to the TERRAFORM user by sql/policies_attach.sql (scripts/apply-policies), not here: the provider's
+# user attachment resource reads the reference back as TF_ADMIN, finds nothing, and fails with "Root object was present, but now absent".
 
 resource "snowflake_account_authentication_policy_attachment" "human" {
   count                 = var.enforce_account_policies ? 1 : 0
