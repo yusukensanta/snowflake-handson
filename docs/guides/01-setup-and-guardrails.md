@@ -74,7 +74,13 @@ It checks tools, connection, region, edition, the Cortex cross-region parameter 
 About 0.1 credit (a few seconds of an XS warehouse for the probe).
 
 ## Verify
-`scripts/preflight` exits 0 and prints no `block` rows.
+
+```bash
+scripts/preflight                       # exit 0 and no `block` rows
+snow connection test -c handson_admin   # Status: OK
+scripts/verify-step 01
+```
+Expect `[info] step 01 verified`. If the connection test fails, see the error table in step 2.
 
 ## 4. Guardrails before workloads
 ```bash
@@ -94,7 +100,16 @@ Cloud mapping: resource monitor ≈ AWS Budgets action / GCP budget with a Pub/S
 0 credits: the monitor and roles are metadata only.
 
 ## Verify (guardrails)
-`scripts/cost-guard --status` lists `HANDSON_ACCOUNT_MONITOR` with quota 80.
+
+```bash
+scripts/cost-guard --status                              # JSON: resource_monitors, then warehouses (none yet)
+snow sql -c handson_admin -q "SHOW USERS LIKE 'TERRAFORM'"
+snow connection test -c handson_tf                       # the new service identity: Status: OK
+```
+Expect:
+- `HANDSON_ACCOUNT_MONITOR` with `level` `ACCOUNT`, `credit_quota` `80.00`; and four warehouse monitors (`LOAD_WH_MONITOR` 10, `TRANSFORM_WH_MONITOR` 10, `BI_WH_MONITOR` 10, `MONITOR_WH_MONITOR` 5).
+- One `TERRAFORM` user row (type `SERVICE`).
+- The same monitors in Snowsight: **Admin > Cost management > Resource monitors** (role `ACCOUNTADMIN`).
 
 ---
 <!-- nav:bottom -->

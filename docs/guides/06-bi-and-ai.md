@@ -9,8 +9,8 @@
 ## 1. BI: a Streamlit dashboard inside Snowflake
 `apps/streamlit/` is a small dashboard (claims by region, plus platform credits). It runs inside Snowflake, so data never leaves the account and the role's masking and row policies still apply. Deploy it under a least-privilege role, not an admin role:
 ```bash
-snow sql -c handson_tf -q "PUT file://apps/streamlit/* @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims AUTO_COMPRESS=FALSE OVERWRITE=TRUE"   # after the stage exists
-snow sql -c handson_tf -f sql/streamlit.sql
+snow sql -c handson_tf -f sql/streamlit.sql   # creates the stage, grants and the app
+snow sql -c handson_tf -q "PUT file://apps/streamlit/* @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims AUTO_COMPRESS=FALSE OVERWRITE=TRUE"   # uploads the app files
 ```
 Open it in Snowsight (Projects > Streamlit) as `CLAIMS_ADJUSTER`: only Seoul rows appear. Switch role to see a different view. The status filter is allow-listed in `queries.py` (unit-tested), never string-interpolated from user input.
 
@@ -27,7 +27,13 @@ If available:
 Dashboard: about 2 credits (BI_WH, auto-suspend 60 s). AI: budget up to 5 credits, capped by the setting above; 0 if skipped.
 
 ## Verify
-The app opens and shows regions for `CLAIMS_ADJUSTER` only; if AI is enabled, the sensitive-column question is refused or masked.
+
+```bash
+snow sql -c handson_tf -q "SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS"          # CLAIMS_DASH
+snow sql -c handson_tf -q "LIST @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims"       # app.py and the other uploaded files
+scripts/verify-step 06
+```
+Then open **Projects > Streamlit > CLAIMS_DASH** in Snowsight. Expect regions for `CLAIMS_ADJUSTER` only. If AI is enabled, the sensitive-column question is refused or masked.
 
 ---
 <!-- nav:bottom -->

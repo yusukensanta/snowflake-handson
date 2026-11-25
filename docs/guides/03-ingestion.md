@@ -42,7 +42,18 @@ Rows land in `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` through the high-performance SDK 
 About 8 credits (XS `LOAD_WH`, auto-suspend 60 s). Streaming is billed per ingested volume, not warehouse time.
 
 ## Verify
-`SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS` equals `--rows` (200,000 by default); the second `scripts/load-batch` loads nothing.
+
+```bash
+snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS"
+snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS_STREAM"   # after the streaming step
+snow sql -c handson_tf -q "LIST @HANBIT_RAW.CLAIMS.LANDING"                                                # the staged claims.csv.gz
+scripts/verify-step 03
+```
+Expect:
+- The first count equals `--rows` (200,000 by default). Repeat for the other five domains (`LENDING`, `FINANCE`, `UNDERWRITING`, `RISK_FRAUD`, `MARKETING`) by changing the schema and table name.
+- The second `scripts/load-batch` ends each `COPY` with `0 files processed` and the counts do not change.
+- The `_STREAM` count equals the rows in the file you streamed.
+- `scripts/verify-step 03` only checks that the CLAIMS table has rows, so read the counts yourself.
 
 ---
 <!-- nav:bottom -->

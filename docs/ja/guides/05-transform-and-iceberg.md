@@ -28,7 +28,13 @@ scripts/cost-guard --suspend-all     # ウェアハウスと Dynamic Table を�
 約 8 クレジット。ほとんどは XS での 120 万行の初回フルリフレッシュです。
 
 ## 確認(変換)
-`SELECT COUNT(*) FROM HANBIT_CURATED.CLAIMS.CLAIMS` が RAW の件数と一致し、`SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED` で `scheduling_state = ACTIVE` になっていること。
+
+```bash
+snow sql -c handson_tf -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED"   # 6 行、scheduling_state は ACTIVE
+snow sql -c handson_tf --warehouse TRANSFORM_WH -q "SELECT (SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS) AS raw_n, (SELECT COUNT(*) FROM HANBIT_CURATED.CLAIMS.CLAIMS) AS curated_n"
+scripts/verify-step 05
+```
+Dynamic Table が 6 つあり、`raw_n` と `curated_n` が一致すること。作成直後は最初のリフレッシュが実行中のことがあるので、数分待ってから再実行してください。Snowsight では **Monitoring > Dynamic tables** で見られます。
 
 ## 2. Snowflake 管理ストレージ上の Iceberg v3
 Apache Iceberg はオープンなテーブルフォーマットです。データは Parquet ファイルとメタデータで構成され、どのエンジンからも読めます。**Snowflake をカタログ、Snowflake 管理ストレージを保存先**にすると、S3 バケットや IAM ロールを自分で用意せずにオープン形式のテーブルを使えます(AWS バケット版は付録にあり、リポジトリのオーナーは適用しません)。クラウドでの類似: Glue/Hive 方式の Iceberg テーブルから、ストレージ周りの配線を除いたもの。
@@ -54,7 +60,12 @@ ap-northeast-2 のトライアルでは、Snowflake 管理の Iceberg ストレ�
 約 1 クレジット(XS での CTAS 1 回とストレージ)。
 
 ## 確認(Iceberg)
-`SELECT COUNT(*) FROM HANBIT_MARTS.LAKE.CLAIMS_FACT` が CURATED の claims 件数と一致し、`ICEBERG_VERSION` パラメータが `3` であること。
+
+```bash
+snow sql -c handson_tf --warehouse TRANSFORM_WH -q "SELECT COUNT(*) AS n FROM HANBIT_MARTS.LAKE.CLAIMS_FACT"
+snow sql -c handson_tf -q "SHOW PARAMETERS LIKE 'ICEBERG_VERSION' IN TABLE HANBIT_MARTS.LAKE.CLAIMS_FACT"
+```
+`n` が CURATED の claims 件数と一致し、パラメータ値が `3` であること。`sql/iceberg.sql` が失敗した場合は、上のフォールバックに従って先へ進んでください。
 
 ---
 <!-- nav:bottom -->

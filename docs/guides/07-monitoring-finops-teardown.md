@@ -34,7 +34,13 @@ Keep a second admin session open while testing: a wrong IP locks you out.
 About 4 credits (hourly alerts plus queries on `MONITOR_WH`).
 
 ## Verify (monitoring)
-`SELECT * FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE ORDER BY DAY DESC LIMIT 5;` returns rows; the audit query lists the access-matrix reads.
+
+```bash
+snow sql -c handson_tf --warehouse MONITOR_WH -q "SELECT * FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE ORDER BY DAY DESC LIMIT 5"
+snow sql -c handson_tf --warehouse MONITOR_WH -f sql/audit.sql
+scripts/verify-step 07
+```
+Expect rows from the credits view (ACCOUNT_USAGE lags by up to a few hours, so a brand-new account may show none yet; the verify step passes with zero rows) and the audit query listing the access-matrix reads.
 
 ## 4. FinOps: know the number before it knows you
 ```bash
@@ -55,7 +61,16 @@ It is destructive and refuses to run without `--yes`. Afterwards delete the loca
 Under 0.5 credits; teardown stops all recurring cost.
 
 ## Verify (FinOps and teardown)
-`scripts/cost-report` prints a total and status; after teardown `SHOW WAREHOUSES` lists none of ours.
+
+```bash
+scripts/cost-report                                       # total credits and status vs plan 53 / warn 70 / stop 80
+scripts/cost-guard --status
+# after scripts/teardown --yes (while the admin key still exists):
+snow sql -c handson_admin -q "SHOW WAREHOUSES"            # none of LOAD_WH, TRANSFORM_WH, BI_WH, MONITOR_WH
+snow sql -c handson_admin -q "SHOW RESOURCE MONITORS"     # no *_WH_MONITOR and no HANDSON_ACCOUNT_MONITOR
+snow sql -c handson_admin -q "SHOW USERS LIKE 'TERRAFORM'"   # no rows
+```
+After teardown the `handson_tf` connection no longer works, so use `handson_admin` for these checks.
 
 ---
 <!-- nav:bottom -->

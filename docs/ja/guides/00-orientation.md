@@ -41,11 +41,25 @@
 
 ガードレール(リソースモニター、auto-suspend 60 秒)は、**どのワークロードより先に**作成します。
 
+## 毎回のセッション開始時
+新しいターミナルでは毎回、鍵のパスフレーズが必要です。Terraform のコマンドには `scripts/tf-env` も必要です。スクリプトは、ガイドが `handson_admin`(`ACCOUNTADMIN`: bootstrap、`attach-monitors`、後片付け)と指定しない限り、`handson_tf` 接続(ロール `TF_ADMIN`)を使います。
+```bash
+cd snowflake-handson
+read -rs "PRIVATE_KEY_PASSPHRASE?Key passphrase: " && echo && export PRIVATE_KEY_PASSPHRASE   # zsh。bash では: read -rsp 'Key passphrase: ' PRIVATE_KEY_PASSPHRASE; echo; export PRIVATE_KEY_PASSPHRASE
+source scripts/tf-env      # terraform コマンドの前だけ(ガイド 02、04、05、07)
+```
+各ガイドの末尾には**確認**ブロックがあり、実行するコマンド、期待する結果、Snowsight で同じ状態を見る場所を示します。`scripts/verify-step N` は読み取り専用のチェックを実行し、結果を `.progress/state.json` に記録します。
+
 ## このステップのコスト
 0 クレジット(読むだけ)。
 
 ## 確認
-`scripts/check-secrets` が `[check-secrets] clean` を出力すること。
+
+```bash
+scripts/verify-step 00        # scripts/check-secrets を実行します(Snowflake には接続しません)
+cat .progress/state.json      # 確認済みの各ステップの UTC 時刻
+```
+`[check-secrets] clean` に続いて `[info] step 00 verified; recorded in .progress/state.json` と表示されること。
 
 ---
 <!-- nav:bottom -->

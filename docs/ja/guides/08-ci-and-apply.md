@@ -82,7 +82,12 @@ git switch -c change-x && git commit … && gh pr create
 検証は Snowflake クレジット 0。plan と apply はメタデータ操作のみ(数秒のクラウドサービス、ウェアハウスは使用しません)。公開リポジトリでは GitHub Actions の実行時間は無料です。
 
 ## 確認
-`.tf` ファイルを変更する PR を開くと、`ci` が成功し、`terraform` ワークフローに plan が表示されること。マージ後、`apply` ジョブが承認を待ち、承認後に `Apply complete` と報告されること。
+
+```bash
+gh pr checks                                  # 自分の PR で ci と terraform の plan ジョブが成功している
+gh run list --workflow terraform --limit 3    # マージ後: apply の実行が承認を待ち、その後完了する
+```
+`.tf` ファイルを変更する PR を開くと、`ci` が成功し、`terraform` ワークフローに plan が表示されること。マージ後、`apply` ジョブが承認を待ち、承認後に `Apply complete` と報告されること。ローカルで `source scripts/tf-env` のあと `terraform -chdir=terraform/envs/handson plan` を実行し、`No changes` になることでも確認できます。
 
 ---
 <!-- nav:bottom -->

@@ -34,7 +34,13 @@ Terraform の `monitoring` モジュールが、`SNOWFLAKE.ACCOUNT_USAGE` 上に
 約 4 クレジット(`MONITOR_WH` での毎時のアラートとクエリ)。
 
 ## 確認(監視)
-`SELECT * FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE ORDER BY DAY DESC LIMIT 5;` が行を返し、監査クエリにアクセスマトリクスの読み取りが表示されること。
+
+```bash
+snow sql -c handson_tf --warehouse MONITOR_WH -q "SELECT * FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE ORDER BY DAY DESC LIMIT 5"
+snow sql -c handson_tf --warehouse MONITOR_WH -f sql/audit.sql
+scripts/verify-step 07
+```
+クレジットのビューが行を返し、監査クエリにアクセスマトリクスの読み取りが表示されること(ACCOUNT_USAGE は最大数時間遅れるため、できたばかりのアカウントでは行がまだ出ないことがあります。その場合も確認ステップは成功します)。
 
 ## 4. FinOps: 請求に気づかれる前に数字を知る
 ```bash
@@ -55,7 +61,16 @@ scripts/teardown --yes         # コンピュートをサスペンドし、terra
 0.5 クレジット未満。後片付けにより、継続的なコストはすべて止まります。
 
 ## 確認(FinOps と後片付け)
-`scripts/cost-report` が合計とステータスを表示すること。後片付け後は `SHOW WAREHOUSES` に自分たちのウェアハウスが残っていないこと。
+
+```bash
+scripts/cost-report                                       # 合計クレジットと、計画 53 / 警告 70 / 停止 80 に対するステータス
+scripts/cost-guard --status
+# scripts/teardown --yes の後(管理者用の鍵がまだあるうちに):
+snow sql -c handson_admin -q "SHOW WAREHOUSES"            # LOAD_WH、TRANSFORM_WH、BI_WH、MONITOR_WH が残っていない
+snow sql -c handson_admin -q "SHOW RESOURCE MONITORS"     # *_WH_MONITOR と HANDSON_ACCOUNT_MONITOR が残っていない
+snow sql -c handson_admin -q "SHOW USERS LIKE 'TERRAFORM'"   # 行が返らない
+```
+後片付けの後は `handson_tf` 接続が使えなくなるため、これらの確認には `handson_admin` を使います。
 
 ---
 <!-- nav:bottom -->

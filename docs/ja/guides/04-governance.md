@@ -37,7 +37,14 @@ scripts/apply-policies                               # 権限テーブル、集�
 分類とポリシーテストを含めて約 6 クレジット。
 
 ## 確認
-`scripts/access-matrix`(ガイド 04 の「検証」)でコアのケースがすべて成功すること。
+
+```bash
+snow sql -c handson_tf -q "SHOW MASKING POLICIES IN SCHEMA HANBIT_GOV.POLICIES"      # MASK_SENSITIVE_STRING、MASK_SENSITIVE_NUMBER
+snow sql -c handson_tf -q "SHOW ROW ACCESS POLICIES IN SCHEMA HANBIT_GOV.POLICIES"   # RAP_REGION
+scripts/access-matrix                                                               # コアのケースがすべて成功する
+scripts/verify-step 04
+```
+2 つのマスキングポリシーと `RAP_REGION` が一覧に表示され、マトリクスに `FAIL` の行が出ないこと。前提: ガイド 05 の第 1 節が完了していて(CURATED テーブルがある)、上の `terraform` コマンドでは `source scripts/tf-env` が有効であること。Snowsight でペルソナとして確認するには、`USE ROLE CLAIMS_ADJUSTER;` のあと `SELECT * FROM HANBIT_CURATED.CLAIMS.CLAIMS LIMIT 5;` を実行します(ガイド 02 の `grant_personas_to_user` が必要です。ソウルの行だけが見え、このロールは診断を読めますが、他のペルソナにはマスクされます。これはアクセスマトリクスが確認します)。
 
 ## 検証: アクセスマトリクス
 テストできないガバナンスは、制御ではなく主張にすぎません。`sql/matrix/access-matrix.yaml` に、ペルソナ × オブジェクト × 期待結果(`visible`、`masked`、`hashed`、`denied`、`rows`、`regions`)を列挙しています。ランナーは `USE ROLE` でロールを切り替えてクエリを実行し、結果を比較します。

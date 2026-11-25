@@ -82,7 +82,12 @@ Recovery: if an apply fails halfway, fix forward with a new PR; never edit state
 0 Snowflake credits for validation. Plan and apply sessions use the metadata services only (a few seconds of cloud services, no warehouse). GitHub Actions minutes are free for public repos.
 
 ## Verify
-Open a PR touching a `.tf` file: `ci` is green and the `terraform` workflow shows a plan. After merge, the `apply` job waits for your approval and then reports `Apply complete`.
+
+```bash
+gh pr checks                                  # on your PR: ci and the terraform plan job are green
+gh run list --workflow terraform --limit 3    # after merge: the apply run waits for approval, then completes
+```
+Open a PR touching a `.tf` file: `ci` is green and the `terraform` workflow shows a plan. After merge, the `apply` job waits for your approval and then reports `Apply complete`. Confirm with `terraform -chdir=terraform/envs/handson plan` (locally, after `source scripts/tf-env`): `No changes`.
 
 ---
 <!-- nav:bottom -->

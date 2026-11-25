@@ -42,7 +42,18 @@ scripts/stream-load --domain claims --file data/out/claims.csv.gz
 約 8 クレジット(XS の `LOAD_WH`、auto-suspend 60 秒)。ストリーミングはウェアハウス時間ではなく取り込み量に課金されます。
 
 ## 確認
-`SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS` が `--rows`(既定 20 万)と一致し、2 回目の `scripts/load-batch` が何もロードしないこと。
+
+```bash
+snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS"
+snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS_STREAM"   # ストリーミングの手順の後
+snow sql -c handson_tf -q "LIST @HANBIT_RAW.CLAIMS.LANDING"                                                # ステージされた claims.csv.gz
+scripts/verify-step 03
+```
+期待する結果:
+- 1 つ目の件数が `--rows`(既定 20 万)と一致すること。ほかの 5 ドメイン(`LENDING`、`FINANCE`、`UNDERWRITING`、`RISK_FRAUD`、`MARKETING`)も、スキーマとテーブル名を変えて同様に確認します。
+- 2 回目の `scripts/load-batch` では、各 `COPY` が `0 files processed` で終わり、件数が変わらないこと。
+- `_STREAM` の件数が、ストリーミングしたファイルの行数と一致すること。
+- `scripts/verify-step 03` は CLAIMS テーブルに行があることしか確認しないので、件数は自分の目で確認してください。
 
 ---
 <!-- nav:bottom -->
