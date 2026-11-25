@@ -22,7 +22,7 @@ Terraform の `monitoring` モジュールが、`SNOWFLAKE.ACCOUNT_USAGE` 上に
 `ACCOUNT_USAGE` のデータは最大で数時間遅れます。リアルタイムには `INFORMATION_SCHEMA` のテーブル関数を使います。クラウドとの対応: これらのビュー ≈ CloudTrail + CloudWatch メトリクス / Cloud Audit Logs + Monitoring。
 
 ## 2. ID とネットワークの強化
-`governance` は `NP_HANDSON`、`AP_HUMAN`(MFA 必須)、`SP_HUMAN`(アイドル 30 分)を作成し(**強制はしません**)、`AP_SERVICE`(鍵ペアのみ)を `TERRAFORM` ユーザーに適用します。アカウントに強制するには:
+`governance` は `NP_HANDSON`、`AP_HUMAN`(MFA 必須)、`SP_HUMAN`(アイドル 30 分)を作成し(**強制はしません**)、`AP_SERVICE`(鍵ペアのみ)も作成します。`TERRAFORM` ユーザーへの適用は `scripts/apply-policies` が行います。アカウントに強制するには:
 1. `allowed_ips = ["<あなたのグローバル IP>/32"]` を設定し、MFA が登録済みであることを確認します。
 2. `terraform apply -var enforce_account_policies=true` を実行します。
 テスト中は別の管理者セッションを開いたままにしてください。IP を間違えると締め出されます。

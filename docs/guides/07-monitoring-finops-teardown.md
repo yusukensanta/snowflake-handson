@@ -22,7 +22,7 @@ Set `alert_email` (a verified user email, in the git-ignored `terraform.tfvars`)
 `ACCOUNT_USAGE` data lags by up to a few hours; use `INFORMATION_SCHEMA` table functions for real time. Cloud mapping: these views ≈ CloudTrail + CloudWatch metrics / Cloud Audit Logs + Monitoring.
 
 ## 2. Identity and network hardening
-`governance` creates (but does **not** enforce) `NP_HANDSON`, `AP_HUMAN` (MFA required), `SP_HUMAN` (30 min idle) and attaches `AP_SERVICE` (key-pair only) to the `TERRAFORM` user. To enforce on the account:
+`governance` creates (but does **not** enforce) `NP_HANDSON`, `AP_HUMAN` (MFA required), `SP_HUMAN` (30 min idle) and creates `AP_SERVICE` (key-pair only); `scripts/apply-policies` attaches it to the `TERRAFORM` user. To enforce on the account:
 1. Set `allowed_ips = ["<your public IP>/32"]` and confirm your MFA is enrolled.
 2. `terraform apply -var enforce_account_policies=true`.
 Keep a second admin session open while testing: a wrong IP locks you out.
