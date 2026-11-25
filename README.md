@@ -34,3 +34,15 @@ Run `scripts/check-secrets` before every commit. See guide 00.
 
 ## Start
 `scripts/install-tools && scripts/preflight`, then read guide 01.
+
+## Status and disclaimer
+- **Tested offline, not yet live-verified.** Unit tests, linters, `terraform validate` and CI pass, but the guides have not
+  all been run end to end against a real Snowflake account. Syntax or availability that depends on your edition or region
+  (Cortex, managed Iceberg storage, semantic views, Snowpipe Streaming) may differ; each guide says how to check.
+- **Costs are yours.** Credit figures are estimates at an assumed $4.50/credit. Verify your own rate with
+  `scripts/preflight`, keep the resource monitor, and use `scripts/cost-guard --suspend-all` when idle.
+- The company, people and data are **fictional and synthetic**. Not affiliated with or endorsed by Snowflake Inc.;
+  Snowflake is a trademark of its owner.
+
+## License and contributing
+[MIT](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
