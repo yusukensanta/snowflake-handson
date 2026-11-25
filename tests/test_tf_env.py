@@ -20,7 +20,7 @@ def _profile(home: Path) -> None:
     (sf / "k.p8").write_text(f"{FAKE_KEY}\nsecond line\n")
     (sf / "connections.toml").write_text(
         f'[handson_tf]\naccount = "ORGX-ACCT1"\nuser = "TERRAFORM"\nauthenticator = "SNOWFLAKE_JWT"\n'
-        f'private_key_file = "{sf}/k.p8"\nrole = "TF_ADMIN"\n'
+        f'private_key_file = "{sf}/k.p8"\nrole = "TF_ADMIN"\nwarehouse = "TRANSFORM_WH"\n'
     )
 
 
@@ -31,7 +31,7 @@ def test_exports_provider_variables(tmp_path):
     out = r.stdout
     assert "SNOWFLAKE_ORGANIZATION_NAME=ORGX" in out and "SNOWFLAKE_ACCOUNT_NAME=ACCT1" in out
     assert "SNOWFLAKE_USER=TERRAFORM" in out and "SNOWFLAKE_ROLE=TF_ADMIN" in out
-    assert "SNOWFLAKE_AUTHENTICATOR=SNOWFLAKE_JWT" in out
+    assert "SNOWFLAKE_AUTHENTICATOR=SNOWFLAKE_JWT" in out and "SNOWFLAKE_WAREHOUSE=TRANSFORM_WH" in out
     assert "SNOWFLAKE_PRIVATE_KEY_PASSPHRASE=it's a pass" in out  # quoting survives a hostile passphrase
     assert FAKE_KEY in out and "second line" in out  # multi-line key content survives the export
 

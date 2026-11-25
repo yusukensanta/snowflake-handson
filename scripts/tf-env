@@ -34,6 +34,7 @@ env = {
     "SNOWFLAKE_ACCOUNT_NAME": acct,
     "SNOWFLAKE_USER": conn["user"],
     "SNOWFLAKE_ROLE": conn.get("role", ""),
+    "SNOWFLAKE_WAREHOUSE": conn.get("warehouse", ""),  # tag/policy reads need an active warehouse
     "SNOWFLAKE_AUTHENTICATOR": "SNOWFLAKE_JWT",
     "SNOWFLAKE_PRIVATE_KEY": key,
     "SNOWFLAKE_PRIVATE_KEY_PASSPHRASE": passphrase,
