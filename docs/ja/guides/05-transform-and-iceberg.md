@@ -20,7 +20,7 @@ CURATED 層で行うこと: ビジネスキーで重複排除し、列名を維�
 
 **ラグとコスト:** `TARGET_LAG = '1 hour'` なら更新は少なく済みます。ラグ 1 分では `TRANSFORM_WH` が起き続け、コストが何倍にもなります。計測するには、1 日後に `TRANSFORM_WH` の `V_CREDITS_BY_WAREHOUSE` を比較します。使わないときはサスペンドします:
 ```bash
-scripts/cost-guard --suspend-all     # ウェアハウスと Dynamic Table をサスペンド
+scripts/cost-guard --suspend-all     # ウェアハウスは handson_admin、Dynamic Table は handson_tf(所有者は TF_ADMIN)でサスペンド。失敗があれば終了コード 1
 ```
 **データ品質:** `sql/dmf.sql` が、各キー列に `NULL_COUNT` と `DUPLICATE_COUNT` のデータメトリックファンクションを(毎時)付与します。結果は `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS` に出ます。
 

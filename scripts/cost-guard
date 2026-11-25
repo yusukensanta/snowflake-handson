@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Emergency / routine cost control. --status (default) | --suspend-all. Usage: scripts/cost-guard [--dry-run] [--connection NAME] [--status|--suspend-all]
+# Emergency / routine cost control. --status (default) | --suspend-all. Usage: scripts/cost-guard [--dry-run] [--connection NAME] [--dt-connection NAME] [--status|--suspend-all]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$here/lib/common.sh"
 parse_common_flags "$@"
-conn="handson_admin"; mode="status"
+conn="handson_admin"; dt_conn="handson_tf"; mode="status"
 set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
 while [ $# -gt 0 ]; do
-  case "$1" in --connection) conn="$2"; shift 2 ;; --status) mode=status; shift ;; --suspend-all) mode=suspend; shift ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+  case "$1" in --connection) conn="$2"; shift 2 ;; --dt-connection) dt_conn="$2"; shift 2 ;; --status) mode=status; shift ;; --suspend-all) mode=suspend; shift ;; *) log_err "unknown arg $1"; exit 64 ;; esac
 done
 # Run a SHOW statement and print only the named columns as JSON (the default table output wraps unreadably).
 show_json() {
@@ -28,9 +28,17 @@ case "$mode" in
   suspend)
     if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would suspend every started warehouse"; exit 0; fi
     names="$(snow sql -c "$conn" --format json -q "SHOW WAREHOUSES" | python3 -c "import sys,json; print(' '.join(w['name'] for w in json.load(sys.stdin) if w['state']!='SUSPENDED'))")"
-    for w in $names; do snow sql -c "$conn" -q "ALTER WAREHOUSE \"$w\" SUSPEND" >/dev/null && log_info "suspended $w"; done
+    failed=0
+    for w in $names; do
+      if snow sql -c "$conn" -q "ALTER WAREHOUSE \"$w\" SUSPEND" >/dev/null; then log_info "suspended $w"; else failed=1; fi
+    done
     [ -n "$names" ] || log_info "nothing running"
-    # Dynamic Tables refresh on a schedule and wake their warehouse; suspend them too.
-    dts="$(snow sql -c "$conn" --format json -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED" 2>/dev/null | python3 -c "import sys,json; print(' '.join(t['database_name']+'.'+t['schema_name']+'.'+t['name'] for t in json.load(sys.stdin) if t.get('scheduling_state')!='SUSPENDED'))" 2>/dev/null || true)"
-    for t in $dts; do snow sql -c "$conn" -q "ALTER DYNAMIC TABLE $t SUSPEND" >/dev/null && log_info "suspended dynamic table $t"; done ;;
+    # Dynamic Tables refresh on a schedule and wake their warehouse; suspend them too. TF_ADMIN owns them and ACCOUNTADMIN
+    # has no OPERATE on them (it fails with "Insufficient privileges"), so this part uses --dt-connection (default handson_tf).
+    dts="$(snow sql -c "$dt_conn" --format json -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED" 2>/dev/null | python3 -c "import sys,json; print(' '.join(t['database_name']+'.'+t['schema_name']+'.'+t['name'] for t in json.load(sys.stdin) if t.get('scheduling_state')!='SUSPENDED'))" 2>/dev/null || true)"
+    for t in $dts; do
+      if snow sql -c "$dt_conn" -q "ALTER DYNAMIC TABLE $t SUSPEND" >/dev/null; then log_info "suspended dynamic table $t"; else failed=1; fi
+    done
+    # An emergency stop that fails quietly is worse than one that fails loudly.
+    [ "$failed" = "0" ] || { log_err "some suspends failed (see errors above); the stop is incomplete"; exit 1; } ;;
 esac
