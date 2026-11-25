@@ -5,7 +5,7 @@ Public tutorial repo: governed Snowflake pipeline for a fictional insurance + le
 
 ## Commands
 - Tools: `scripts/install-tools`; checks: `scripts/preflight [--dry-run]`
-- Python (uv): `uv run pytest --cov --cov-fail-under=80`, `uv run ruff check`, `uv run ty check src`
+- Python 3.15.2 (pinned in `.python-version`; uv fetches it). Python (uv): `uv run pytest --cov --cov-fail-under=80`, `uv run ruff check`, `uv run ty check src`
 - Shell: `find scripts tests -type f \( -perm -u+x -o -name "*.sh" \) | xargs shellcheck`; secrets: `scripts/check-secrets`
 - Terraform: `terraform -chdir=terraform fmt -check -recursive; terraform -chdir=terraform/envs/handson validate | plan`
 - Cost: `scripts/cost-report`, emergency stop: `scripts/cost-guard --suspend-all`
