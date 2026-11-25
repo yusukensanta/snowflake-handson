@@ -1,0 +1,41 @@
+title: "How I used this hands-on / このハンズオンの使い方: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing! This is the main way the maintainer learns how the hands-on is used.
+        共有ありがとうございます。このハンズオンがどう使われているかを知る主な手段です。
+
+        **Never paste account identifiers, usernames, passwords, tokens, keys or Terraform state.**
+        **アカウント ID、ユーザー名、パスワード、トークン、鍵、Terraform の state は貼らないでください。**
+  - type: dropdown
+    id: how
+    attributes:
+      label: How did you use it? / どのように使いましたか?
+      options:
+        - Forked it and ran the Terraform workflow / フォークして Terraform ワークフローを実行
+        - Cloned it and ran locally (plan-only) / クローンしてローカルで実行 (plan のみ)
+        - Read the guides only / ガイドを読んだだけ
+        - Adapted parts for my own project or training / 自分のプロジェクトや研修向けに一部を改変
+        - Other / その他
+    validations:
+      required: true
+  - type: input
+    id: progress
+    attributes:
+      label: How far did you get? / どこまで進みましたか?
+      description: "e.g. guides 00-04 / 例: 「ガイド 00-04」"
+  - type: input
+    id: env
+    attributes:
+      label: Snowflake edition and cloud region / Snowflake のエディションとリージョン
+      description: e.g. "Enterprise, AWS ap-northeast-1". Do not include the account identifier. / アカウント識別子は含めないでください。
+  - type: input
+    id: credits
+    attributes:
+      label: Credits you actually used / 実際に使ったクレジット
+      description: Compare with each guide's "Cost of this step" box. / 各ガイドの「Cost of this step」と比べてください。
+  - type: textarea
+    id: notes
+    attributes:
+      label: What worked, what broke, what you changed / うまくいったこと、詰まったこと、変更したこと
