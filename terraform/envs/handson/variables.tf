@@ -4,6 +4,12 @@ variable "snowflake_profile" {
   default     = ""
 }
 
+variable "snowflake_warehouse" {
+  description = "Warehouse for the provider session (tag and policy reads need one). It is created by this configuration, so on a brand-new account the first apply may need `-var snowflake_warehouse=` (empty), then a second apply."
+  type        = string
+  default     = "TRANSFORM_WH"
+}
+
 variable "preview_features" {
   description = "Provider preview features to enable (provider 2.23.0). Only features still in preview belong here: already-promoted ones (authentication/session policy, stage_internal, file_format_csv, auth policy attachments) warn if listed. Add e.g. snowflake_iceberg_table_resource for guide 05."
   type        = list(string)

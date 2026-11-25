@@ -3,6 +3,8 @@
 provider "snowflake" {
   profile                  = var.snowflake_profile == "" ? null : var.snowflake_profile # "" in CI: env vars are used
   preview_features_enabled = var.preview_features
+  # Tag and policy reads need an active warehouse. Set here, not only via SNOWFLAKE_WAREHOUSE, so a stale shell and CI behave the same.
+  warehouse = var.snowflake_warehouse == "" ? null : var.snowflake_warehouse
 }
 
 # Warehouse => resource monitor name. The monitors are created by scripts/bootstrap and attached by scripts/attach-monitors,
