@@ -20,7 +20,7 @@ What the curated layer does: deduplicates on the business key, keeps the column 
 
 **Lag versus cost:** `TARGET_LAG = '1 hour'` keeps refreshes rare. A 1-minute lag would keep `TRANSFORM_WH` awake and cost many times more. Measure: after one day compare `V_CREDITS_BY_WAREHOUSE` for `TRANSFORM_WH`. Suspend when idle:
 ```bash
-scripts/cost-guard --suspend-all     # suspends warehouses and Dynamic Tables
+scripts/cost-guard --suspend-all     # warehouses via handson_admin, Dynamic Tables via handson_tf (TF_ADMIN owns them); exits 1 if any suspend fails
 ```
 **Data quality:** `sql/dmf.sql` attaches `NULL_COUNT` and `DUPLICATE_COUNT` data metric functions (hourly) to each key column; results appear in `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS`.
 
