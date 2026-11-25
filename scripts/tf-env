@@ -46,4 +46,4 @@ PY
 )" || { unset _tf_env_out; return 1 2>/dev/null || exit 1; }
 eval "$_tf_env_out"
 unset _tf_env_out
-echo "[info] SNOWFLAKE_* exported for terraform (account ${SNOWFLAKE_ORGANIZATION_NAME}-***, user ${SNOWFLAKE_USER}, role ${SNOWFLAKE_ROLE:-default})"
+echo "[info] SNOWFLAKE_* exported for terraform (account ${SNOWFLAKE_ORGANIZATION_NAME}-***, user ${SNOWFLAKE_USER}, role ${SNOWFLAKE_ROLE:-default}, warehouse ${SNOWFLAKE_WAREHOUSE:-none})"

@@ -5,19 +5,14 @@ variable "snowflake_profile" {
 }
 
 variable "preview_features" {
-  description = "Provider preview features to enable. The defaults are the preview resources this repo uses (provider 2.23.0); add e.g. snowflake_iceberg_table_resource for guide 05."
+  description = "Provider preview features to enable (provider 2.23.0). Only features still in preview belong here: already-promoted ones (authentication/session policy, stage_internal, file_format_csv, auth policy attachments) warn if listed. Add e.g. snowflake_iceberg_table_resource for guide 05."
   type        = list(string)
   default = [
-    "snowflake_account_authentication_policy_attachment_resource",
     "snowflake_alert_resource",
-    "snowflake_authentication_policy_resource",
     "snowflake_email_notification_integration_resource",
-    "snowflake_file_format_csv_resource",
     "snowflake_network_policy_attachment_resource",
     "snowflake_projection_policy_resource",
-    "snowflake_session_policy_resource",
-    "snowflake_stage_internal_resource",
-    "snowflake_user_authentication_policy_attachment_resource",
+    "snowflake_table_resource",
   ]
 }
 
