@@ -18,13 +18,27 @@
 | Aggregation | `AGG_MIN_GROUP_5` on `MARKETING` | Marketing sees only groups of 5 or more |
 
 ## Steps
+Guide 02's apply already created the policies, the tag, `RAP_REGION` and `ROLE_REGION`. What is left is attaching them to the data, which needs the CURATED tables (guide 05 §1, `scripts/apply-curated`). Run from the repo root with `PRIVATE_KEY_PASSPHRASE` exported and `source scripts/tf-env` active.
+
 ```bash
-terraform -chdir=terraform/envs/handson apply        # policies + tag attachment
-scripts/gen-data --emit-tag-map terraform/envs/handson/tags.auto.tfvars.json
-terraform -chdir=terraform/envs/handson apply -var apply_column_tags=true   # column tags on CURATED (never RAW)
-scripts/apply-policies                               # entitlements, aggregation policy, table attachments
+# 1. The CURATED tables must exist (expect six dynamic tables)
+snow sql -c handson_tf -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED"
+
+# 2. Column tags on CURATED (never RAW)
+scripts/gen-data --emit-tag-map terraform/envs/handson/tags.auto.tfvars.json   # git-ignored; Terraform loads *.auto.tfvars.json by itself
+grep -c . terraform/envs/handson/tags.auto.tfvars.json                      # expect 13 lines: 11 columns across 4 domains
+echo 'apply_column_tags = true' >> terraform/envs/handson/terraform.tfvars   # git-ignored; keeps the tags on every later plan/apply
+terraform -chdir=terraform/envs/handson plan                                 # expect 11 snowflake_tag_association to add
+terraform -chdir=terraform/envs/handson apply
+
+# 3. Row access, aggregation policy, service-user authentication policy
+scripts/apply-policies                                                       # safe to re-run
 ```
-Then prove it with the access matrix (guide 04 §Proof, command in `scripts/access-matrix`).
+Then prove it with the access matrix (below).
+
+- Put `apply_column_tags = true` in `terraform.tfvars` rather than passing `-var` once: with a one-off `-var`, the next plain `plan` or `apply` (yours or the CI workflow's) sees the tags as unwanted and removes them. `tags.auto.tfvars.json` is git-ignored too, so CI needs it in `TFVARS_JSON` (guide 08).
+- **A clean `terraform plan` does not mean this guide is done.** Without the flag, Terraform plans no column tags at all.
+- If `apply-policies` once failed with "already has a AUTHENTICATION_POLICY": an earlier, failed Terraform apply had already attached `AP_SERVICE` to the `TERRAFORM` user (the provider could not read it back and reported an error). The script now uses `SET ... FORCE`, so re-running is safe.
 
 ## Why these choices
 - **Tag-based masking** scales: new tagged columns are protected without new DDL. Snowflake allows one masking policy per data type per tag, so the policy branches on the tag value.
@@ -41,10 +55,11 @@ About 6 credits including classification and policy tests.
 ```bash
 snow sql -c handson_tf -q "SHOW MASKING POLICIES IN SCHEMA HANBIT_GOV.POLICIES"      # MASK_SENSITIVE_STRING, MASK_SENSITIVE_NUMBER
 snow sql -c handson_tf -q "SHOW ROW ACCESS POLICIES IN SCHEMA HANBIT_GOV.POLICIES"   # RAP_REGION
+snow sql -c handson_tf -q "SELECT * FROM TABLE(HANBIT_CURATED.INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS('HANBIT_CURATED.CLAIMS.CLAIMS','table'))"   # tagged columns (e.g. DIAGNOSIS_CODE)
 scripts/access-matrix                                                               # every core case passes
 scripts/verify-step 04
 ```
-Expect the two masking policies and `RAP_REGION` in the lists, and no `FAIL` line from the matrix. Prerequisite: guide 05 section 1 is done (CURATED tables exist) and `source scripts/tf-env` is active for the `terraform` commands above. To see it as a persona in Snowsight, run `USE ROLE CLAIMS_ADJUSTER;` and `SELECT * FROM HANBIT_CURATED.CLAIMS.CLAIMS LIMIT 5;` (needs `grant_personas_to_user` from guide 02; you see only Seoul rows, and this role may read diagnosis while other personas see it masked, which the access matrix checks).
+Expect the two masking policies and `RAP_REGION` in the lists, tagged columns in the third result (empty means the column tags are not applied yet), and no `FAIL` line from the matrix. Prerequisite: guide 05 section 1 is done (CURATED tables exist) and `source scripts/tf-env` is active for the `terraform` commands above. To see it as a persona in Snowsight, run `USE ROLE CLAIMS_ADJUSTER;` and `SELECT * FROM HANBIT_CURATED.CLAIMS.CLAIMS LIMIT 5;` (needs `grant_personas_to_user` from guide 02; you see only Seoul rows, and this role may read diagnosis while other personas see it masked, which the access matrix checks).
 
 ## Proof: the access matrix
 Governance you cannot test is a claim, not a control. `sql/matrix/access-matrix.yaml` lists persona × object × expectation (`visible`, `masked`, `hashed`, `denied`, `rows`, `regions`). The runner switches role with `USE ROLE`, runs the query, and compares.

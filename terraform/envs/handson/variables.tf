@@ -35,7 +35,7 @@ variable "column_sensitivity" {
 }
 
 variable "apply_column_tags" {
-  description = "Set true only after scripts/load-batch created the RAW tables."
+  description = "Set true once the CURATED tables exist (guide 05 section 1). Keep it in terraform.tfvars, not a one-off -var."
   type        = bool
   default     = false
 }
