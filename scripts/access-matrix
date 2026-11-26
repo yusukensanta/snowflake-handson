@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Run the persona access matrix against the live account. Exit 1 if any case fails.
+# Read-only: runs without --execute; --dry-run only parses the matrix.
 # Usage: scripts/access-matrix [--connection NAME] [--stretch] [--matrix FILE] [--dry-run]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$here/lib/common.sh"
 parse_common_flags "$@"
+mark_read_only
 cd "$here/.."
-if [ "$DRY_RUN" = "1" ]; then
+if [ "$PRINT_ONLY" = "1" ]; then
   uv run python -c "
 from sfops.matrix import load_matrix
 cases = load_matrix('sql/matrix/access-matrix.yaml', include_stretch=True)

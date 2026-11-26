@@ -38,7 +38,7 @@ Terraform の `monitoring` モジュールが、`SNOWFLAKE.ACCOUNT_USAGE` 上に
 ```bash
 snow sql -c handson_tf --warehouse MONITOR_WH -q "SELECT * FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE ORDER BY DAY DESC LIMIT 5"
 snow sql -c handson_tf --warehouse MONITOR_WH -f sql/audit.sql
-scripts/verify-step 07
+scripts/verify-step 07 --execute
 ```
 クレジットのビューが行を返し、監査クエリにアクセスマトリクスの読み取りが表示されること(ACCOUNT_USAGE は最大数時間遅れるため、できたばかりのアカウントでは行がまだ出ないことがあります。その場合も確認ステップは成功します)。
 
@@ -46,16 +46,16 @@ scripts/verify-step 07
 ```bash
 scripts/cost-report            # サービス別クレジットを計画 53 / 警告 70 / 強制停止 80 と比較(70 以上は終了コード 2)
 scripts/cost-guard --status    # ウェアハウス、モニター、Dynamic Table
-scripts/cost-guard --suspend-all
+scripts/cost-guard --suspend-all --execute
 ```
 保護は安い順に重ねます。ウェアハウスの `auto_suspend = 60`、ウェアハウス単位のリソースモニター(`scripts/bootstrap` が作成し、`scripts/attach-monitors` が割り当て)、80 クレジットで強制停止するアカウントモニター `HANDSON_ACCOUNT_MONITOR`(`scripts/bootstrap` が作成)、そしてこのレポートです。`ACCOUNT_USAGE` は最大 3 時間ほど遅れるため、本当のブレーキはレポートではなくモニターです。Seoul のレートを `scripts/preflight` で確認するまで、クレジット数は推定値です。
 
 ## 5. 後片付け
 ```bash
-scripts/teardown --dry-run     # プレビュー
-scripts/teardown --yes         # コンピュートをサスペンドし、terraform destroy、OPS DB・モニター(アカウントとウェアハウス)・TERRAFORM ユーザー・TF_ADMIN を削除
+scripts/teardown               # プレビュー
+scripts/teardown --execute --yes  # コンピュートをサスペンドし、terraform destroy、OPS DB・モニター(アカウントとウェアハウス)・TERRAFORM ユーザー・TF_ADMIN を削除
 ```
-破壊的な操作のため、`--yes` なしでは実行を拒否します。完了後は、生成したローカルの `~/.snowflake/*.p8` 鍵も削除してください。
+破壊的な操作のため、`--execute` がなければプレビューのみで、`--execute` を付けても `--yes` なしでは実行を拒否します。完了後は、生成したローカルの `~/.snowflake/*.p8` 鍵も削除してください。
 
 ## このステップ(FinOps と後片付け)のコスト
 0.5 クレジット未満。後片付けにより、継続的なコストはすべて止まります。
@@ -65,7 +65,7 @@ scripts/teardown --yes         # コンピュートをサスペンドし、terra
 ```bash
 scripts/cost-report                                       # 合計クレジットと、計画 53 / 警告 70 / 停止 80 に対するステータス
 scripts/cost-guard --status
-# scripts/teardown --yes の後(管理者用の鍵がまだあるうちに):
+# scripts/teardown --execute --yes の後(管理者用の鍵がまだあるうちに):
 snow sql -c handson_admin -q "SHOW WAREHOUSES"            # LOAD_WH、TRANSFORM_WH、BI_WH、MONITOR_WH が残っていない
 snow sql -c handson_admin -q "SHOW RESOURCE MONITORS"     # *_WH_MONITOR と HANDSON_ACCOUNT_MONITOR が残っていない
 snow sql -c handson_admin -q "SHOW USERS LIKE 'TERRAFORM'"   # 行が返らない

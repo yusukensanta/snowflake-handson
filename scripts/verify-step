@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Run the read-only "Verify" check for a guide step and record it in .progress/state.json (git-ignored).
-# Usage: scripts/verify-step <00|01|02|03|04|05|06|07>   (00 runs scripts/check-secrets; no Snowflake connection) [--connection NAME] [--dry-run]
+# Run the read-only "Verify" check for a guide step. With --execute, also record it in .progress/state.json (git-ignored).
+# --dry-run prints the check without running it.
+# Usage: scripts/verify-step <00|01|02|03|04|05|06|07> [--execute|--dry-run] [--connection NAME]   (00 runs scripts/check-secrets; no Snowflake connection)
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -9,7 +10,11 @@ parse_common_flags "$@"
 conn="handson_tf"; step=""
 set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
 while [ $# -gt 0 ]; do
-  case "$1" in --connection) conn="$2"; shift 2 ;; *) step="$1"; shift ;; esac
+  case "$1" in
+    --connection) conn="$2"; shift 2 ;;
+    -*) log_err "unknown arg $1"; exit 64 ;;
+    *) [ -z "$step" ] || { log_err "unknown arg $1"; exit 64; }; step="$1"; shift ;;
+  esac
 done
 case "$step" in
   00) q="" ;;
@@ -22,8 +27,10 @@ case "$step" in
   07) q="SELECT COUNT(*) >= 0 FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE" ;;
   *) log_err "usage: verify-step <00..07>"; exit 64 ;;
 esac
-if [ "$step" = "00" ]; then run "$here/check-secrets"; else run snow sql -c "$conn" -q "$q"; fi
-[ "$DRY_RUN" = "1" ] && exit 0
+if [ "$step" = "00" ]; then check=("$here/check-secrets"); else check=(snow sql -c "$conn" -q "$q"); fi
+if [ "$PRINT_ONLY" = "1" ]; then printf '[dry-run] %s\n' "${check[*]}"; exit 0; fi
+"${check[@]}"
+if [ "$DRY_RUN" = "1" ]; then log_info "step $step check passed; progress not recorded"; exit 0; fi
 mkdir -p "$here/../.progress"
 python3 - "$here/../.progress/state.json" "$step" <<'PY'
 import json, sys, datetime, pathlib

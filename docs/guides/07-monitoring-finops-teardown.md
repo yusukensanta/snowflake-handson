@@ -38,7 +38,7 @@ About 4 credits (hourly alerts plus queries on `MONITOR_WH`).
 ```bash
 snow sql -c handson_tf --warehouse MONITOR_WH -q "SELECT * FROM HANBIT_OPS.MONITORING.V_CREDITS_BY_SERVICE ORDER BY DAY DESC LIMIT 5"
 snow sql -c handson_tf --warehouse MONITOR_WH -f sql/audit.sql
-scripts/verify-step 07
+scripts/verify-step 07 --execute
 ```
 Expect rows from the credits view (ACCOUNT_USAGE lags by up to a few hours, so a brand-new account may show none yet; the verify step passes with zero rows) and the audit query listing the access-matrix reads.
 
@@ -46,16 +46,16 @@ Expect rows from the credits view (ACCOUNT_USAGE lags by up to a few hours, so a
 ```bash
 scripts/cost-report            # credits by service vs plan 53 / warn 70 / hard stop 80 (exit 2 at 70+)
 scripts/cost-guard --status    # warehouses, monitors, dynamic tables
-scripts/cost-guard --suspend-all
+scripts/cost-guard --suspend-all --execute
 ```
 Layers of protection, cheapest first: warehouse `auto_suspend = 60`; per-warehouse resource monitors (created by `scripts/bootstrap`, attached by `scripts/attach-monitors`); the account monitor `HANDSON_ACCOUNT_MONITOR` with a hard stop at 80 credits (created by `scripts/bootstrap`); and this report. `ACCOUNT_USAGE` lags up to about 3 hours, so the monitor, not the report, is the real brake. Credits are an estimate until you confirm the Seoul rate in `scripts/preflight`.
 
 ## 5. Teardown
 ```bash
-scripts/teardown --dry-run     # preview
-scripts/teardown --yes         # suspend compute, terraform destroy, drop OPS db, monitors, TERRAFORM user, TF_ADMIN
+scripts/teardown               # preview
+scripts/teardown --execute --yes  # suspend compute, terraform destroy, drop OPS db, monitors, TERRAFORM user, TF_ADMIN
 ```
-It is destructive and refuses to run without `--yes`. Afterwards delete the local `~/.snowflake/*.p8` keys you generated.
+It is destructive: without `--execute` it only previews, and with `--execute` it refuses to run without `--yes`. Afterwards delete the local `~/.snowflake/*.p8` keys you generated.
 
 ## Cost of this step (FinOps and teardown)
 Under 0.5 credits; teardown stops all recurring cost.
@@ -65,7 +65,7 @@ Under 0.5 credits; teardown stops all recurring cost.
 ```bash
 scripts/cost-report                                       # total credits and status vs plan 53 / warn 70 / stop 80
 scripts/cost-guard --status
-# after scripts/teardown --yes (while the admin key still exists):
+# after scripts/teardown --execute --yes (while the admin key still exists):
 snow sql -c handson_admin -q "SHOW WAREHOUSES"            # none of LOAD_WH, TRANSFORM_WH, BI_WH, MONITOR_WH
 snow sql -c handson_admin -q "SHOW RESOURCE MONITORS"     # no *_WH_MONITOR and no HANDSON_ACCOUNT_MONITOR
 snow sql -c handson_admin -q "SHOW USERS LIKE 'TERRAFORM'"   # no rows

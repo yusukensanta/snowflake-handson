@@ -10,17 +10,17 @@
 A **Dynamic Table** is a declarative query Snowflake keeps fresh within a `TARGET_LAG`. You describe the result; Snowflake schedules incremental refreshes. Cloud analogue: a materialized view with a freshness SLA, or a dbt model plus its scheduler, in one object.
 
 ```bash
-scripts/gen-data --emit-curated sql/curated.sql   # already committed; regenerates from the one schema definition
-scripts/apply-curated --dry-run
-scripts/apply-curated                              # 6 Dynamic Tables in HANBIT_CURATED + data metric functions
+scripts/gen-data --execute --emit-curated sql/curated.sql  # already committed; regenerates from the one schema definition
+scripts/apply-curated                              # preview
+scripts/apply-curated --execute                    # 6 Dynamic Tables in HANBIT_CURATED + data metric functions
 ```
 What the curated layer does: deduplicates on the business key, keeps the column names (so tag-based masking applies unchanged), and adds `CUSTOMER_PSEUDO_ID = SHA2(customer_id || salt)` so fraud and marketing can join without raw identifiers.
 
-**Why `IF NOT EXISTS`:** `CREATE OR REPLACE` would silently drop the masking/row policies attached to the table. If you change a definition, drop that table deliberately, recreate, then re-run `scripts/apply-policies`.
+**Why `IF NOT EXISTS`:** `CREATE OR REPLACE` would silently drop the masking/row policies attached to the table. If you change a definition, drop that table deliberately, recreate, then re-run `scripts/apply-policies --execute`.
 
 **Lag versus cost:** `TARGET_LAG = '1 hour'` keeps refreshes rare. A 1-minute lag would keep `TRANSFORM_WH` awake and cost many times more. Measure: after one day compare `V_CREDITS_BY_WAREHOUSE` for `TRANSFORM_WH`. Suspend when idle:
 ```bash
-scripts/cost-guard --suspend-all     # warehouses via handson_admin, Dynamic Tables via handson_tf (TF_ADMIN owns them); exits 1 if any suspend fails
+scripts/cost-guard --suspend-all --execute  # warehouses via handson_admin, Dynamic Tables via handson_tf (TF_ADMIN owns them); exits 1 if any suspend fails
 ```
 **Data quality:** `sql/dmf.sql` attaches `NULL_COUNT` and `DUPLICATE_COUNT` data metric functions (hourly) to each key column; results appear in `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS`.
 
@@ -32,7 +32,7 @@ About 8 credits, mostly the first full refresh of 1.2 million rows on XS.
 ```bash
 snow sql -c handson_tf -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED"   # 6 rows, scheduling_state ACTIVE
 snow sql -c handson_tf --warehouse TRANSFORM_WH -q "SELECT (SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS) AS raw_n, (SELECT COUNT(*) FROM HANBIT_CURATED.CLAIMS.CLAIMS) AS curated_n"
-scripts/verify-step 05
+scripts/verify-step 05 --execute
 ```
 Expect six Dynamic Tables and `raw_n` equal to `curated_n`. Right after creation the first refresh may still be running; wait a few minutes and re-run. In Snowsight: **Monitoring > Dynamic tables**.
 
@@ -54,7 +54,7 @@ scripts/open-read          # PyIceberg through the Horizon Iceberg REST catalog
 ```
 
 ### Fallback
-Snowflake-managed Iceberg storage or v3 may not be enabled in ap-northeast-2 for your trial; `scripts/preflight` probes this. If `sql/iceberg.sql` fails, read the section as concept only, record the error in your notes, and continue: nothing later depends on it.
+Snowflake-managed Iceberg storage or v3 may not be enabled in ap-northeast-2 for your trial; `scripts/preflight --execute` probes this. If `sql/iceberg.sql` fails, read the section as concept only, record the error in your notes, and continue: nothing later depends on it.
 
 ## Cost of this step (Iceberg)
 About 1 credit (one CTAS on XS plus storage).

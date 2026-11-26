@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Day-0 checks. Exit 1 only when a BLOCKING item fails. --dry-run prints checks, runs nothing.
-# Usage: scripts/preflight [--dry-run] [--connection NAME]   (default connection: handson_admin)
+# Day-0 checks. Exit 1 only when a BLOCKING item fails. Read-only checks run without a flag; the Iceberg probe, which
+# creates and drops a scratch database, runs only with --execute. --dry-run prints the checks and runs none of them.
+# Usage: scripts/preflight [--execute|--dry-run] [--connection NAME]   (default connection: handson_admin)
 set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -8,7 +9,9 @@ here="$(cd "$(dirname "$0")" && pwd)"
 parse_common_flags "$@"
 conn="handson_admin"
 set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
-while [ $# -gt 0 ]; do case "$1" in --connection) conn="$2"; shift 2 ;; *) shift ;; esac; done
+while [ $# -gt 0 ]; do
+  case "$1" in --connection) conn="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
+done
 blocked=0
 row() { printf '%-28s %-6s %s\n' "$1" "$2" "$3"; [ "$2" = "block" ] && blocked=1; return 0; }
 sql() { snow sql -c "$conn" --format json -q "$1" 2>/dev/null; }
@@ -17,9 +20,9 @@ py() { (cd "$here/.." && uv run python -m sfops.preflight "$1"); }
 printf '%-28s %-6s %s\n' CHECK STATUS DETAIL
 for t in terraform snow uv shellcheck gitleaks; do
   if command -v "$t" >/dev/null 2>&1; then row "tool:$t" ok "$(command -v "$t")"
-  else row "tool:$t" block "missing; run scripts/install-tools"; fi
+  else row "tool:$t" block "missing; run scripts/install-tools --execute"; fi
 done
-if [ "$DRY_RUN" = "1" ]; then
+if [ "$PRINT_ONLY" = "1" ]; then
   for c in "snow connection test -c $conn" "SELECT CURRENT_REGION()" "SHOW ORGANIZATION ACCOUNTS (edition)" \
            "SHOW PARAMETERS LIKE 'CORTEX_ENABLED_CROSS_REGION' IN ACCOUNT" \
            "Iceberg probe: CREATE ICEBERG TABLE ... EXTERNAL_VOLUME='SNOWFLAKE_MANAGED' in PREFLIGHT_SCRATCH (dropped after)"; do
@@ -45,7 +48,10 @@ esac
 xr="$(sql "SHOW PARAMETERS LIKE 'CORTEX_ENABLED_CROSS_REGION' IN ACCOUNT" | grep -o '"value": *"[^"]*"' | head -1)"
 row cortex-cross-region warn "${xr:-unknown}; fallback if CoCo unavailable: skip AI labs, stay in-region (spec 3). Never changed by this script."
 probe="CREATE DATABASE IF NOT EXISTS PREFLIGHT_SCRATCH; CREATE SCHEMA IF NOT EXISTS PREFLIGHT_SCRATCH.T; CREATE OR REPLACE ICEBERG TABLE PREFLIGHT_SCRATCH.T.P (ID INT) CATALOG='SNOWFLAKE' EXTERNAL_VOLUME='SNOWFLAKE_MANAGED'; DROP DATABASE PREFLIGHT_SCRATCH"
-if snow sql -c "$conn" -q "$probe" >/dev/null 2>&1; then row iceberg-snowflake-storage ok "created and dropped probe table"
+if [ "$DRY_RUN" = "1" ]; then
+  printf '[dry-run] would run: %s\n' "$probe"
+  row iceberg-snowflake-storage skip "probe not run; it creates and drops PREFLIGHT_SCRATCH"
+elif snow sql -c "$conn" -q "$probe" >/dev/null 2>&1; then row iceberg-snowflake-storage ok "created and dropped probe table"
 else row iceberg-snowflake-storage warn "probe failed; fallback: Iceberg becomes conceptual + appendix (spec 3)"; fi
 echo "Enter the credit rate shown on Snowsight Usage page, or press Enter to keep 4.50:" >&2
 read -r rate_in; rate="$(printf '%s' "${rate_in:-4.50}" | py rate 2>/dev/null)"

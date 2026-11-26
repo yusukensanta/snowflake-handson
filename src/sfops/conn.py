@@ -24,11 +24,11 @@ def _config_path() -> Path:
 def _entry(name: str) -> dict:
     path = _config_path()
     if not path.exists():
-        raise ConnectionConfigError(f"{path} not found; create it (guide 01) or run scripts/bootstrap")
+        raise ConnectionConfigError(f"{path} not found; create it (guide 01) or run scripts/bootstrap --execute")
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
     if name not in data:
-        raise ConnectionConfigError(f"connection '{name}' not in {path}; run scripts/bootstrap")
+        raise ConnectionConfigError(f"connection '{name}' not in {path}; run scripts/bootstrap --execute")
     return data[name]
 
 

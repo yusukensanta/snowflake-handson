@@ -1,5 +1,21 @@
 #!/usr/bin/env bash
-# Generate synthetic data (seeded, deterministic). Usage: scripts/gen-data [--rows N] [--out DIR] [--domain D] [--emit-tag-map PATH]
+# Generate synthetic data (seeded, deterministic). Previews by default; acts only with --execute.
+# Usage: scripts/gen-data [--execute|--dry-run] [--rows N] [--out DIR] [--domain D] [--emit-tag-map PATH]
 set -eu
-cd "$(dirname "$0")/.."
-exec uv run python -m hanbit_gen.cli "$@"
+here="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$here/lib/common.sh"
+parse_common_flags "$@"
+set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
+# Checked here so that a preview reports a typo too. Keep in step with src/hanbit_gen/cli.py (a test compares them).
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --rows|--out|--seed|--domain|--fmt|--emit-tag-map|--emit-ddl|--emit-curated|--emit-dmf)
+      [ $# -ge 2 ] || { log_err "$1 needs a value"; exit 64; }; shift 2 ;;
+    --rows=*|--out=*|--seed=*|--domain=*|--fmt=*|--emit-tag-map=*|--emit-ddl=*|--emit-curated=*|--emit-dmf=*|-h|--help) shift ;;
+    *) log_err "unknown arg $1"; exit 64 ;;
+  esac
+done
+cd "$here/.."
+# No exec: the closing preview line is printed by an EXIT trap.
+run uv run python -m hanbit_gen.cli "${REST_ARGS[@]+"${REST_ARGS[@]}"}"

@@ -47,3 +47,4 @@ def test_missing_profile(tmp_path):
     (tmp_path / ".snowflake" / "connections.toml").write_text("[other]\n")
     r = _run(tmp_path, "x")
     assert r.returncode != 0 and "handson_tf" in r.stderr
+    assert "scripts/bootstrap --execute" in r.stderr

@@ -14,9 +14,9 @@ terraform -chdir=terraform/envs/handson init
 terraform -chdir=terraform/envs/handson plan  # warehouses (XS, auto-suspend 60 s), 9 persona roles
 terraform -chdir=terraform/envs/handson apply
 terraform -chdir=terraform/envs/handson plan  # must say: No changes
-scripts/attach-monitors                       # admin connection: attach the per-warehouse resource monitors
+scripts/attach-monitors --execute             # admin connection: attach the per-warehouse resource monitors
 ```
-The monitors were created by `scripts/bootstrap` (guide 01). Only `ACCOUNTADMIN` can assign a warehouse to a resource monitor, so this step is outside Terraform, which ignores the warehouses' `resource_monitor` setting. It is idempotent: re-run it after any `terraform apply` that creates a warehouse (including the CI apply in guide 08).
+The monitors were created by `scripts/bootstrap` (guide 01). Only `ACCOUNTADMIN` can assign a warehouse to a resource monitor, so this step is outside Terraform, which ignores the warehouses' `resource_monitor` setting. It is idempotent: re-run it (with `--execute`) after any `terraform apply` that creates a warehouse (including the CI apply in guide 08).
 The Terraform provider does not read `connections.toml` (that is the CLI's file), so `scripts/tf-env` translates the profile into the `SNOWFLAKE_*` variables the provider and CI use. Source it in every new terminal. The provider session uses `TRANSFORM_WH` (variable `snowflake_warehouse`) for tag and policy reads. If that warehouse does not exist yet (a brand-new account), create the warehouses first with `terraform apply -target=module.bootstrap.snowflake_warehouse.this`, then run the full `apply`. The provider is pinned in `versions.tf` (`2.23.0`); resource names were read from the provider schema, not guessed. Aggregation policies, budgets and data metric function attachments have no resource, so they are applied from `sql/`.
 
 ## 2. The RBAC pattern
@@ -32,11 +32,11 @@ About 1 credit for the verification queries.
 
 ```bash
 terraform -chdir=terraform/envs/handson plan   # No changes. Your infrastructure matches the configuration.
-scripts/attach-monitors
+scripts/attach-monitors --execute
 scripts/cost-guard --status                    # each of LOAD_WH, TRANSFORM_WH, BI_WH, MONITOR_WH shows its own resource_monitor
 snow sql -c handson_tf -q "SHOW ROLES LIKE 'CLAIMS_ADJUSTER'"
 snow sql -c handson_tf -q "SHOW GRANTS TO ROLE CLAIMS_ADJUSTER"   # access roles and USAGE on a warehouse, no direct table grants
-scripts/verify-step 02
+scripts/verify-step 02 --execute
 ```
 Expect `[info] step 02 verified`. In Snowsight (role `TF_ADMIN`), **Admin > Warehouses** lists the four warehouses, all `Suspended` when idle. `COMPUTE_WH`, `SNOWFLAKE_LEARNING_WH` and `SYSTEM$STREAMLIT_NOTEBOOK_WH` are trial defaults with no monitor of their own; the account monitor covers them.
 

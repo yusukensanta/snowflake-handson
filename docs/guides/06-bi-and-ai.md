@@ -31,7 +31,7 @@ Dashboard: about 2 credits (BI_WH, auto-suspend 60 s). AI: budget up to 5 credit
 ```bash
 snow sql -c handson_tf -q "SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS"          # CLAIMS_DASH
 snow sql -c handson_tf -q "LIST @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims"       # app.py and the other uploaded files
-scripts/verify-step 06
+scripts/verify-step 06 --execute
 ```
 Then open **Projects > Streamlit > CLAIMS_DASH** in Snowsight. Expect regions for `CLAIMS_ADJUSTER` only. If AI is enabled, the sensitive-column question is refused or masked.
 

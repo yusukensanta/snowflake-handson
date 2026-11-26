@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Attach each per-warehouse resource monitor (created by scripts/bootstrap) to its warehouse (created by Terraform).
 # Only ACCOUNTADMIN can assign a warehouse to a resource monitor, so this runs on the admin connection, after
-# `terraform apply`. Idempotent. Usage: scripts/attach-monitors [--dry-run] [--connection NAME]
+# `terraform apply`. Idempotent. Previews by default; acts only with --execute.
+# Usage: scripts/attach-monitors [--execute|--dry-run] [--connection NAME]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -16,4 +17,4 @@ for wq in $WAREHOUSE_MONITORS; do
   w="${wq%%:*}"
   run snow sql -c "$conn" -q "ALTER WAREHOUSE IF EXISTS $w SET RESOURCE_MONITOR = ${w}_MONITOR"
 done
-log_info "done. Check: scripts/cost-guard --status shows each warehouse's resource_monitor"
+done_msg "done. Check: scripts/cost-guard --status shows each warehouse's resource_monitor"

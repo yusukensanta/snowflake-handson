@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Read the Iceberg table from outside Snowflake via the Horizon Iceberg REST catalog (PyIceberg).
 # Needs a programmatic access token in $SNOWFLAKE_PAT (never commit it) and SNOWFLAKE_ACCOUNT_URL.
-# Usage: scripts/open-read [--dry-run]
+# Read-only: runs without --execute. Usage: scripts/open-read [--dry-run]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$here/lib/common.sh"
 parse_common_flags "$@"
-if [ "$DRY_RUN" = "1" ]; then
+mark_read_only
+[ "${#REST_ARGS[@]}" -eq 0 ] || { log_err "unknown arg ${REST_ARGS[0]}"; exit 64; }
+if [ "$PRINT_ONLY" = "1" ]; then
   log_info "[dry-run] would read HANBIT_MARTS.LAKE.CLAIMS_FACT via PyIceberg against \${SNOWFLAKE_ACCOUNT_URL}/polaris/api/catalog"
   exit 0
 fi

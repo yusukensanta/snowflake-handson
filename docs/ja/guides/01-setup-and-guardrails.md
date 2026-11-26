@@ -10,8 +10,8 @@
 
 ## 1. ツールのインストール
 ```bash
-scripts/install-tools --dry-run   # 実行計画を確認
-scripts/install-tools             # terraform, snow (SnowCLI), shellcheck, gitleaks。再実行しても安全
+scripts/install-tools             # プレビュー: 実行計画を確認
+scripts/install-tools --execute   # terraform, snow (SnowCLI), shellcheck, gitleaks。再実行しても安全
 ```
 
 ## 2. 管理者接続の作成(鍵ペア)
@@ -57,15 +57,16 @@ Google サインインで作成したものを含め、トライアルアカウ�
 
 ## 3. preflight の実行
 ```bash
-scripts/preflight --dry-run
-scripts/preflight
+scripts/preflight             # 読み取り専用のチェック。Iceberg のプローブは表示のみ
+scripts/preflight --execute   # プローブも実行
 ```
-ツール、接続、リージョン、エディション、Cortex のクロスリージョン設定(読み取りのみで変更しません)、Snowflake 管理ストレージでの Iceberg の可否(一時テーブルを作成して削除)を確認し、Snowsight(Admin > Cost Management)に表示される実際のクレジット単価の入力を求めます。
+ツール、接続、リージョン、エディション、Cortex のクロスリージョン設定(読み取りのみで変更しません)、Snowflake 管理ストレージでの Iceberg の可否(`--execute` を付けた場合のみ。一時データベースを作成して削除)を確認し、Snowsight(Admin > Cost Management)に表示される実際のクレジット単価の入力を求めます。
 
 | 結果 | 意味 | 代替策 |
 |---|---|---|
 | edition が `block` | ポリシーには Enterprise が必要 | Enterprise のトライアルを使う |
 | iceberg が `warn` | Snowflake ストレージが使えない | Iceberg は概念説明と付録のみにする |
+| iceberg が `skip` | プローブ未実行(`--execute` なし) | `scripts/preflight --execute` を実行 |
 | cortex が `warn` | CoCo/Cortex が使えない可能性 | AI ラボをスキップし、リージョン内にとどまる(クロスリージョン推論は使わない) |
 
 **確認結果(記入、アカウント ID は伏せる):** リージョン ___、エディション ___、単価 ___、Iceberg プローブ ___、Cortex ___。
@@ -78,21 +79,21 @@ scripts/preflight
 ```bash
 scripts/preflight                       # 終了コード 0 で、`block` の行が出ないこと
 snow connection test -c handson_admin   # Status: OK
-scripts/verify-step 01
+scripts/verify-step 01 --execute
 ```
 `[info] step 01 verified` と表示されること。接続テストが失敗したら、手順 2 のエラー表を見てください。
 
 ## 4. ワークロードの前にガードレール
 ```bash
-scripts/bootstrap --dry-run      # 実行される SQL をすべて表示(何も実行しない)
-scripts/bootstrap --quota 80     # アカウントとウェアハウスごとのリソースモニター、TF_ADMIN ロール、TERRAFORM サービスユーザーと鍵ペア
+scripts/bootstrap                # プレビュー: 実行される SQL をすべて表示(何も実行しない)
+scripts/bootstrap --execute --quota 80  # アカウントとウェアハウスごとのリソースモニター、TF_ADMIN ロール、TERRAFORM サービスユーザーと鍵ペア
 scripts/cost-guard --status
 ```
 - **アカウントのリソースモニター** `HANDSON_ACCOUNT_MONITOR`: 上限 80 クレジット、50/75/90 % で通知、95 % でサスペンド、100 % で `SUSPEND_IMMEDIATE`。設定には `ACCOUNTADMIN` が必要なので、Terraform ではなくスクリプトが作成します。
 - **88 ではなく 80 にする理由:** $4.50/クレジットなら $400 は約 88 クレジットです。差分は、モニターが作動した後に課金されるクレジットに対する安全マージンです。実際の単価で再計算し、約 10 % を引いてください。
-- **サービス ID:** ユーザー `TERRAFORM`(`TYPE = SERVICE`、鍵ペアのみ、パスワードなし)とロール `TF_ADMIN`。Terraform に必要なアカウント権限だけを持ちます。秘密鍵は `PRIVATE_KEY_PASSPHRASE` のパスフレーズ(管理者鍵用にエクスポートしたものと同じなので、1 回の export で両方の接続を使えます。未設定だと bootstrap は実行を拒否します)で暗号化され、`~/.snowflake/` に置かれ、リポジトリには入りません。Terraform 実行時も `PRIVATE_KEY_PASSPHRASE` を export したままにします。
-- **ウェアハウスのモニター:** `scripts/bootstrap` がウェアハウスごとに 1 つ作成します(`LOAD_WH_MONITOR` 10、`TRANSFORM_WH_MONITOR` 10、`BI_WH_MONITOR` 10、`MONITOR_WH_MONITOR` 5 クレジット。75/90 % で通知、100 % でサスペンド、110 % で即時サスペンド)。リソースモニターの作成とウェアハウスへの割り当ては `ACCOUNTADMIN` にしかできないため、Terraform(`TF_ADMIN`)は行いません。ガイド 02 の `terraform apply` の後に `scripts/attach-monitors` を実行します。
-- **緊急停止:** `scripts/cost-guard --suspend-all`。
+- **サービス ID:** ユーザー `TERRAFORM`(`TYPE = SERVICE`、鍵ペアのみ、パスワードなし)とロール `TF_ADMIN`。Terraform に必要なアカウント権限だけを持ちます。秘密鍵は `PRIVATE_KEY_PASSPHRASE` のパスフレーズ(管理者鍵用にエクスポートしたものと同じなので、1 回の export で両方の接続を使えます。未設定だと `bootstrap --execute` は実行を拒否します)で暗号化され、`~/.snowflake/` に置かれ、リポジトリには入りません。Terraform 実行時も `PRIVATE_KEY_PASSPHRASE` を export したままにします。
+- **ウェアハウスのモニター:** `scripts/bootstrap` がウェアハウスごとに 1 つ作成します(`LOAD_WH_MONITOR` 10、`TRANSFORM_WH_MONITOR` 10、`BI_WH_MONITOR` 10、`MONITOR_WH_MONITOR` 5 クレジット。75/90 % で通知、100 % でサスペンド、110 % で即時サスペンド)。リソースモニターの作成とウェアハウスへの割り当ては `ACCOUNTADMIN` にしかできないため、Terraform(`TF_ADMIN`)は行いません。ガイド 02 の `terraform apply` の後に `scripts/attach-monitors --execute` を実行します。
+- **緊急停止:** `scripts/cost-guard --suspend-all --execute`(`--execute` がないと何もサスペンドされません)。
 
 クラウドとの対応: リソースモニターは AWS Budgets のアクションや GCP の予算+Pub/Sub による停止に近いですが、プラットフォーム自身が強制します。
 

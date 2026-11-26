@@ -18,21 +18,21 @@
 | 集約 | `MARKETING` の `AGG_MIN_GROUP_5` | マーケティングは 5 件以上のグループしか見られない |
 
 ## 手順
-ガイド 02 の apply で、ポリシー、タグ、`RAP_REGION`、`ROLE_REGION` はすでに作成済みです。残るのはそれらをデータに適用する作業で、CURATED テーブル(ガイド 05 の第 1 節、`scripts/apply-curated`)が必要です。リポジトリのルートで、`PRIVATE_KEY_PASSPHRASE` を export し、`source scripts/tf-env` を有効にして実行します。
+ガイド 02 の apply で、ポリシー、タグ、`RAP_REGION`、`ROLE_REGION` はすでに作成済みです。残るのはそれらをデータに適用する作業で、CURATED テーブル(ガイド 05 の第 1 節、`scripts/apply-curated --execute`)が必要です。リポジトリのルートで、`PRIVATE_KEY_PASSPHRASE` を export し、`source scripts/tf-env` を有効にして実行します。
 
 ```bash
 # 1. CURATED テーブルがあること(Dynamic Table が 6 つ)
 snow sql -c handson_tf -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED"
 
 # 2. CURATED の列タグ(RAW には付けない)
-scripts/gen-data --emit-tag-map terraform/envs/handson/tags.auto.tfvars.json   # git 管理外。Terraform は *.auto.tfvars.json を自動で読み込む
+scripts/gen-data --execute --emit-tag-map terraform/envs/handson/tags.auto.tfvars.json  # git 管理外。Terraform は *.auto.tfvars.json を自動で読み込む
 grep -c . terraform/envs/handson/tags.auto.tfvars.json                      # 期待: 13 行(4 ドメインの 11 列)
 echo 'apply_column_tags = true' >> terraform/envs/handson/terraform.tfvars   # git 管理外。以後の plan/apply でもタグを維持する
 terraform -chdir=terraform/envs/handson plan                                 # 期待: snowflake_tag_association が 11 件追加
 terraform -chdir=terraform/envs/handson apply
 
 # 3. 行アクセス、集約ポリシー、サービスユーザーの認証ポリシー
-scripts/apply-policies                                                       # 再実行しても安全
+scripts/apply-policies --execute                                             # 再実行しても安全
 ```
 続いてアクセスマトリクス(下記)で検証します。
 
@@ -57,7 +57,7 @@ snow sql -c handson_tf -q "SHOW MASKING POLICIES IN SCHEMA HANBIT_GOV.POLICIES" 
 snow sql -c handson_tf -q "SHOW ROW ACCESS POLICIES IN SCHEMA HANBIT_GOV.POLICIES"   # RAP_REGION
 snow sql -c handson_tf -q "SELECT * FROM TABLE(HANBIT_CURATED.INFORMATION_SCHEMA.TAG_REFERENCES_ALL_COLUMNS('HANBIT_CURATED.CLAIMS.CLAIMS','table'))"   # タグ付きの列(例: DIAGNOSIS_CODE)
 scripts/access-matrix                                                               # コアのケースがすべて成功する
-scripts/verify-step 04
+scripts/verify-step 04 --execute
 ```
 2 つのマスキングポリシーと `RAP_REGION` が一覧に表示され、3 つ目の結果にタグ付きの列が出ること(空なら列タグはまだ未適用です)、マトリクスに `FAIL` の行が出ないこと。前提: ガイド 05 の第 1 節が完了していて(CURATED テーブルがある)、上の `terraform` コマンドでは `source scripts/tf-env` が有効であること。Snowsight でペルソナとして確認するには、`USE ROLE CLAIMS_ADJUSTER;` のあと `SELECT * FROM HANBIT_CURATED.CLAIMS.CLAIMS LIMIT 5;` を実行します(ガイド 02 の `grant_personas_to_user` が必要です。ソウルの行だけが見え、このロールは診断を読めますが、他のペルソナにはマスクされます。これはアクセスマトリクスが確認します)。
 

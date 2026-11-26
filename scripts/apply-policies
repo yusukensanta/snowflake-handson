@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Attach governance policies to tables (tables are created outside Terraform).
 # Idempotent: each attachment is skipped when POLICY_REFERENCES already shows it.
-# Usage: scripts/apply-policies [--dry-run] [--connection NAME] [--layer HANBIT_CURATED]
+# Previews by default; acts only with --execute.
+# Usage: scripts/apply-policies [--execute|--dry-run] [--connection NAME] [--layer HANBIT_CURATED]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh

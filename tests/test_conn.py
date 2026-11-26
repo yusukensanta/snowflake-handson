@@ -25,7 +25,7 @@ def sf_home(tmp_path, monkeypatch):
 
 def test_missing_file_points_to_bootstrap(tmp_path, monkeypatch):
     monkeypatch.setenv("SNOWFLAKE_HOME", str(tmp_path))
-    with pytest.raises(ConnectionConfigError, match="scripts/bootstrap"):
+    with pytest.raises(ConnectionConfigError, match="scripts/bootstrap --execute"):
         connect("handson_tf")
 
 

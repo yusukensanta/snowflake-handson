@@ -14,9 +14,9 @@ terraform -chdir=terraform/envs/handson init
 terraform -chdir=terraform/envs/handson plan  # ウェアハウス(XS、auto-suspend 60 秒)、ペルソナロール 9 個
 terraform -chdir=terraform/envs/handson apply
 terraform -chdir=terraform/envs/handson plan  # "No changes" になること
-scripts/attach-monitors                       # 管理者接続: ウェアハウスごとのリソースモニターを割り当てる
+scripts/attach-monitors --execute             # 管理者接続: ウェアハウスごとのリソースモニターを割り当てる
 ```
-モニターは `scripts/bootstrap`(ガイド 01)で作成済みです。ウェアハウスをリソースモニターに割り当てられるのは `ACCOUNTADMIN` だけなので、この手順は Terraform の外にあり、Terraform はウェアハウスの `resource_monitor` を無視します。冪等なので、ウェアハウスを作成する `terraform apply`(ガイド 08 の CI の apply を含む)の後に再実行してください。
+モニターは `scripts/bootstrap`(ガイド 01)で作成済みです。ウェアハウスをリソースモニターに割り当てられるのは `ACCOUNTADMIN` だけなので、この手順は Terraform の外にあり、Terraform はウェアハウスの `resource_monitor` を無視します。冪等なので、ウェアハウスを作成する `terraform apply`(ガイド 08 の CI の apply を含む)の後に `--execute` を付けて再実行してください。
 Terraform プロバイダは `connections.toml`(CLI 用のファイル)を読まないため、`scripts/tf-env` がプロファイルをプロバイダと CI が使う `SNOWFLAKE_*` 変数に変換します。新しいターミナルを開くたびに source してください。プロバイダのセッションは、タグやポリシーの読み取りに `TRANSFORM_WH`(変数 `snowflake_warehouse`)を使います。このウェアハウスがまだない場合(新規アカウント)は、先に `terraform apply -target=module.bootstrap.snowflake_warehouse.this` でウェアハウスを作成してから、通常の `apply` を実行してください。プロバイダは `versions.tf` で固定しています(`2.23.0`)。リソース名は推測ではなくプロバイダのスキーマから確認しました。集約ポリシー、予算、データメトリックファンクションの付与にはリソースがないため、`sql/` から適用します。
 
 ## 2. RBAC のパターン
@@ -32,11 +32,11 @@ Terraform プロバイダは `connections.toml`(CLI 用のファイル)を読ま
 
 ```bash
 terraform -chdir=terraform/envs/handson plan   # No changes. Your infrastructure matches the configuration.
-scripts/attach-monitors
+scripts/attach-monitors --execute
 scripts/cost-guard --status                    # LOAD_WH、TRANSFORM_WH、BI_WH、MONITOR_WH のそれぞれに resource_monitor が表示される
 snow sql -c handson_tf -q "SHOW ROLES LIKE 'CLAIMS_ADJUSTER'"
 snow sql -c handson_tf -q "SHOW GRANTS TO ROLE CLAIMS_ADJUSTER"   # アクセスロールとウェアハウスの USAGE。テーブルへの直接付与はない
-scripts/verify-step 02
+scripts/verify-step 02 --execute
 ```
 `[info] step 02 verified` と表示されること。Snowsight(ロール `TF_ADMIN`)の **Admin > Warehouses** に 4 つのウェアハウスが並び、アイドル時は `Suspended` になります。`COMPUTE_WH`、`SNOWFLAKE_LEARNING_WH`、`SYSTEM$STREAMLIT_NOTEBOOK_WH` はトライアルの既定で、専用のモニターはありません。アカウントモニターがこれらをカバーします。
 

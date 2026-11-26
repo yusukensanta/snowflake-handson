@@ -1,7 +1,9 @@
 """Insert/refresh prev/next + "7-day map" navigation at the top and bottom of every guide (EN and JA).
 
 Reading order is the learning order (05 transform comes before 04 governance), not the file numbering.
-Idempotent: blocks live between <!-- nav:top --> / <!-- nav:bottom --> markers. Run: uv run python scripts/sync_doc_nav.py [--check]
+Idempotent: blocks live between <!-- nav:top --> / <!-- nav:bottom --> markers.
+Previews by default (lists the stale guides); writes only with --execute. --check exits 1 if any guide is stale.
+Run: uv run python scripts/sync_doc_nav.py [--execute | --dry-run | --check]
 """
 import re
 import sys
@@ -38,8 +40,13 @@ def render(text: str, lang: str, i: int) -> str:
     return f"{head}\n\n{block(lang, i, 'top')}\n{rest.rstrip(chr(10))}\n\n---\n{block(lang, i, 'bottom')}\n"
 
 
-def main() -> int:
-    check = "--check" in sys.argv
+def main(argv: list[str] | None = None) -> int:
+    flags = set(sys.argv[1:] if argv is None else argv)
+    unknown = flags - {"--execute", "--dry-run", "--check"}
+    if unknown or ("--execute" in flags and len(flags) > 1):
+        print("usage: sync_doc_nav.py [--execute | --dry-run | --check]", file=sys.stderr)
+        return 64
+    check, execute = "--check" in flags, "--execute" in flags
     stale = []
     for lang in ("en", "ja"):
         for i, stem in enumerate(ORDER):
@@ -47,11 +54,16 @@ def main() -> int:
             new = render(p.read_text(), lang, i)
             if new != p.read_text():
                 stale.append(p)
-                if not check:
+                if execute:
                     p.write_text(new)
+    label = "stale: " if check else "updated: " if execute else "would update: "
     for p in stale:
-        print(("stale: " if check else "updated: ") + str(p.relative_to(ROOT)))
-    return 1 if (check and stale) else 0
+        print(label + str(p.relative_to(ROOT)))
+    if check:
+        return 1 if stale else 0
+    if not execute:
+        print("[preview] nothing was changed. Re-run with --execute to apply.")
+    return 0
 
 
 if __name__ == "__main__":

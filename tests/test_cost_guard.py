@@ -24,7 +24,8 @@ def run_guard(tmp_path, *args, ok_conn="handson_tf"):
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     log = tmp_path / "log"
     env = {**os.environ, "PATH": f"{tmp_path}:{os.environ['PATH']}", "FAKE_LOG": str(log), "FAKE_DT_OK_CONN": ok_conn}
-    r = subprocess.run([str(ROOT / "scripts/cost-guard"), "--suspend-all", *args], env=env, capture_output=True, text=True, check=False)
+    cmd = [str(ROOT / "scripts/cost-guard"), "--execute", "--suspend-all", *args]
+    r = subprocess.run(cmd, env=env, capture_output=True, text=True, check=False)
     return r, log.read_text().splitlines() if log.exists() else []
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Emergency / routine cost control. --status (default) | --suspend-all. Usage: scripts/cost-guard [--dry-run] [--connection NAME] [--dt-connection NAME] [--status|--suspend-all]
+# Emergency / routine cost control. --status (default, read-only) | --suspend-all (suspends only with --execute).
+# Usage: scripts/cost-guard [--execute|--dry-run] [--connection NAME] [--dt-connection NAME] [--status|--suspend-all]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -10,10 +11,11 @@ set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
 while [ $# -gt 0 ]; do
   case "$1" in --connection) conn="$2"; shift 2 ;; --dt-connection) dt_conn="$2"; shift 2 ;; --status) mode=status; shift ;; --suspend-all) mode=suspend; shift ;; *) log_err "unknown arg $1"; exit 64 ;; esac
 done
+if [ "$mode" = status ]; then mark_read_only; fi
 # Run a SHOW statement and print only the named columns as JSON (the default table output wraps unreadably).
 show_json() {
   local q="$1"; shift
-  if [ "$DRY_RUN" = "1" ]; then run snow sql -c "$conn" --format json -q "$q"; return 0; fi
+  if [ "$PRINT_ONLY" = "1" ]; then printf '[dry-run] snow sql -c %s --format json -q %s\n' "$conn" "$q"; return 0; fi
   snow sql -c "$conn" --format json -q "$q" | python3 -c '
 import sys, json
 keys = sys.argv[1:]
@@ -26,7 +28,7 @@ case "$mode" in
     echo "warehouses:"
     show_json "SHOW WAREHOUSES" name state size auto_suspend auto_resume resource_monitor ;;
   suspend)
-    if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would suspend every started warehouse"; exit 0; fi
+    if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would suspend every started warehouse and active Dynamic Table; nothing is suspended"; exit 0; fi
     names="$(snow sql -c "$conn" --format json -q "SHOW WAREHOUSES" | python3 -c "import sys,json; print(' '.join(w['name'] for w in json.load(sys.stdin) if w['state']!='SUSPENDED'))")"
     failed=0
     for w in $names; do

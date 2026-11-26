@@ -45,3 +45,8 @@ def test_format_report_lists_services_total_and_remaining():
 def test_format_report_flags_stop_and_suggests_guard():
     out = format_report([CostRow("COMPUTE", 81.0)])
     assert "STOP" in out and "cost-guard --suspend-all" in out
+
+
+def test_stop_report_gives_a_command_that_really_suspends():
+    report = format_report([CostRow("X", 81.0)])
+    assert "scripts/cost-guard --suspend-all --execute" in report

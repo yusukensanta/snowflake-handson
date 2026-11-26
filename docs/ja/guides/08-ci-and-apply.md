@@ -49,7 +49,7 @@ openssl rsa -in ~/.snowflake/ci.p8 -pubout -out ~/.snowflake/ci.pub
 # 公開鍵は 2 つ目の鍵として登録します。ノート PC の鍵はそのまま使え、CI だけ単独でローテーションできます:
 #   ALTER USER TERRAFORM SET RSA_PUBLIC_KEY_2='<ci.pub の BEGIN/END 行を除いた内容>';
 ```
-plan には別の鍵(と別のユーザー)を使います。ローテーションは、新しい鍵を生成し、`RSA_PUBLIC_KEY_2` を設定し、`scripts/setup-github` を再実行し、古い鍵を削除する、という順で行います。アップロード後、不要ならローカルの `.p8` ファイルは削除してください。
+plan には別の鍵(と別のユーザー)を使います。ローテーションは、新しい鍵を生成し、`RSA_PUBLIC_KEY_2` を設定し、`scripts/setup-github --execute` を再実行し、古い鍵を削除する、という順で行います。アップロード後、不要ならローカルの `.p8` ファイルは削除してください。
 
 ### 設定済みの内容を確認する(名前のみ。GitHub は値を表示しません)
 ```bash
@@ -58,14 +58,14 @@ gh secret list --env snowflake-plan; gh secret list --env snowflake-apply
 ```
 
 ## スクリプトによるセットアップ(手順 3 と 4)
-`scripts/setup-github` は、GitHub CLI を使って、必須レビュアー付きの 2 つの環境の作成、`snowflake-apply` の `main` への限定、変数とシークレットの登録、必要なら `main` のブランチ保護までを行います。冪等なので、シークレットのローテーションにも再実行できます。リポジトリ管理者として `gh auth login` が必要です。
+`scripts/setup-github` は、GitHub CLI を使って、必須レビュアー付きの 2 つの環境の作成、`snowflake-apply` の `main` への限定、変数とシークレットの登録、必要なら `main` のブランチ保護までを行います。冪等なので、シークレットのローテーションにも `--execute` を付けて再実行できます。リポジトリ管理者として `gh auth login` が必要です。
 ```bash
 export TF_CLOUD_ORGANIZATION=… TF_WORKSPACE=… TF_API_TOKEN=…
 export PLAN_SNOWFLAKE_USER=TERRAFORM_PLAN  PLAN_SNOWFLAKE_ROLE=TF_PLAN   PLAN_SNOWFLAKE_PRIVATE_KEY_FILE=~/.snowflake/plan.p8
 export APPLY_SNOWFLAKE_USER=TERRAFORM      APPLY_SNOWFLAKE_ROLE=TF_ADMIN APPLY_SNOWFLAKE_PRIVATE_KEY_FILE=~/.snowflake/ci.p8
 export SNOWFLAKE_ORGANIZATION_NAME=… SNOWFLAKE_ACCOUNT_NAME=…           # 両環境で共通
-scripts/setup-github --dry-run --branch-protection   # プレビュー(呼び出しのみ表示し、値は表示しません)
-scripts/setup-github --branch-protection
+scripts/setup-github --branch-protection             # プレビュー(呼び出しのみ表示し、値は表示しません)
+scripts/setup-github --execute --branch-protection
 ```
 シークレットの値はシェルと鍵ファイルから読み込まれ、そのまま GitHub に送られます。スクリプトが値を表示したり保存したりすることはありません。既定ではセルフレビューを許可します(個人オーナー向け)。本当の 4-eyes 承認にするには、2 人目のレビュアーと `--prevent-self-review` を追加してください。結果は `gh api repos/OWNER/REPO/environments --jq '.environments[].name'` で確認できます。
 

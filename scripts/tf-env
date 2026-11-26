@@ -21,7 +21,7 @@ if not path.exists():
     fail(f"{path} not found; see guide 01")
 conn = tomllib.loads(path.read_text()).get(profile)
 if conn is None:
-    fail(f"profile [{profile}] not in {path}; run scripts/bootstrap")
+    fail(f"profile [{profile}] not in {path}; run scripts/bootstrap --execute")
 passphrase = os.environ.get("PRIVATE_KEY_PASSPHRASE")
 if not passphrase:
     fail("export PRIVATE_KEY_PASSPHRASE first (guide 01)")

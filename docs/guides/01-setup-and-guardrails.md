@@ -10,8 +10,8 @@ Order matters: tools → connection → preflight → guardrails (resource monit
 
 ## 1. Install tools
 ```bash
-scripts/install-tools --dry-run   # see the plan
-scripts/install-tools             # terraform, snow (SnowCLI), shellcheck, gitleaks; safe to re-run
+scripts/install-tools             # preview: see the plan
+scripts/install-tools --execute   # terraform, snow (SnowCLI), shellcheck, gitleaks; safe to re-run
 ```
 
 ## 2. Create the admin connection (key pair)
@@ -57,15 +57,16 @@ bootstrap and teardown, run `ALTER USER "<name>" UNSET RSA_PUBLIC_KEY;` and dele
 
 ## 3. Run preflight
 ```bash
-scripts/preflight --dry-run
-scripts/preflight
+scripts/preflight             # read-only checks; the Iceberg probe is only printed
+scripts/preflight --execute   # also runs the probe
 ```
-It checks tools, connection, region, edition, the Cortex cross-region parameter (read-only, never changed), whether Snowflake-managed Iceberg storage works (creates and drops a scratch table), and asks for your real credit rate from Snowsight (Admin > Cost Management).
+It checks tools, connection, region, edition, the Cortex cross-region parameter (read-only, never changed), whether Snowflake-managed Iceberg storage works (only with `--execute`: it creates and drops a scratch database), and asks for your real credit rate from Snowsight (Admin > Cost Management).
 
 | Result | Meaning | Fallback |
 |---|---|---|
 | `block` edition | Policies need Enterprise | Use an Enterprise trial |
 | `warn` iceberg | Snowflake storage unavailable | Iceberg becomes conceptual + appendix |
+| `skip` iceberg | Probe not run (no `--execute`) | Run `scripts/preflight --execute` |
 | `warn` cortex | CoCo/Cortex may be unavailable | Skip AI labs, stay in-region (no cross-region inference) |
 
 **What I observed (fill in, redact account id):** region ___, edition ___, rate ___, Iceberg probe ___, Cortex ___.
@@ -78,21 +79,21 @@ About 0.1 credit (a few seconds of an XS warehouse for the probe).
 ```bash
 scripts/preflight                       # exit 0 and no `block` rows
 snow connection test -c handson_admin   # Status: OK
-scripts/verify-step 01
+scripts/verify-step 01 --execute
 ```
 Expect `[info] step 01 verified`. If the connection test fails, see the error table in step 2.
 
 ## 4. Guardrails before workloads
 ```bash
-scripts/bootstrap --dry-run      # prints every SQL statement; nothing is executed
-scripts/bootstrap --quota 80     # account + per-warehouse resource monitors, TF_ADMIN role, TERRAFORM service user + key pair
+scripts/bootstrap                # preview: prints every SQL statement; nothing is executed
+scripts/bootstrap --execute --quota 80  # account + per-warehouse resource monitors, TF_ADMIN role, TERRAFORM service user + key pair
 scripts/cost-guard --status
 ```
 - **Account resource monitor** `HANDSON_ACCOUNT_MONITOR`: quota 80 credits, notify at 50/75/90 %, suspend at 95 %, `SUSPEND_IMMEDIATE` at 100 %. It must be set by `ACCOUNTADMIN`, so the script creates it, not Terraform.
 - **Why 80 and not 88:** at $4.50/credit $400 is about 88 credits; the gap is a safety margin for credits that bill after a monitor trips. Recompute with your real rate: `--quota $(( 400 * 100 / (rate_cents) ))`, then subtract 10 %.
-- **Service identity:** user `TERRAFORM` (`TYPE = SERVICE`, key-pair only, no password) with role `TF_ADMIN`, which gets only the account privileges Terraform needs. The key is encrypted with the passphrase in `PRIVATE_KEY_PASSPHRASE` (the one you exported for the admin key, so a single export serves both connections; bootstrap refuses to run without it). It lives in `~/.snowflake/`, never in the repo. Keep `PRIVATE_KEY_PASSPHRASE` exported when running Terraform.
-- **Warehouse monitors:** `scripts/bootstrap` also creates one per warehouse (`LOAD_WH_MONITOR` 10, `TRANSFORM_WH_MONITOR` 10, `BI_WH_MONITOR` 10, `MONITOR_WH_MONITOR` 5 credits; notify 75/90, suspend 100, suspend immediately 110). Only `ACCOUNTADMIN` can create a resource monitor or attach one to a warehouse, so Terraform (`TF_ADMIN`) does neither. After guide 02's `terraform apply`, run `scripts/attach-monitors`.
-- **Emergency stop:** `scripts/cost-guard --suspend-all`.
+- **Service identity:** user `TERRAFORM` (`TYPE = SERVICE`, key-pair only, no password) with role `TF_ADMIN`, which gets only the account privileges Terraform needs. The key is encrypted with the passphrase in `PRIVATE_KEY_PASSPHRASE` (the one you exported for the admin key, so a single export serves both connections; `bootstrap --execute` refuses to run without it). It lives in `~/.snowflake/`, never in the repo. Keep `PRIVATE_KEY_PASSPHRASE` exported when running Terraform.
+- **Warehouse monitors:** `scripts/bootstrap` also creates one per warehouse (`LOAD_WH_MONITOR` 10, `TRANSFORM_WH_MONITOR` 10, `BI_WH_MONITOR` 10, `MONITOR_WH_MONITOR` 5 credits; notify 75/90, suspend 100, suspend immediately 110). Only `ACCOUNTADMIN` can create a resource monitor or attach one to a warehouse, so Terraform (`TF_ADMIN`) does neither. After guide 02's `terraform apply`, run `scripts/attach-monitors --execute`.
+- **Emergency stop:** `scripts/cost-guard --suspend-all --execute` (without `--execute` nothing is suspended).
 
 Cloud mapping: resource monitor ≈ AWS Budgets action / GCP budget with a Pub/Sub kill switch, but enforced by the platform itself.
 

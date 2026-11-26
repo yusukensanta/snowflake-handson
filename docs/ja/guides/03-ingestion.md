@@ -16,8 +16,8 @@ AWS アカウントは不要です。ファイルは Snowflake の**内部ステ
 
 ## 1. 合成データの生成
 ```bash
-scripts/gen-data                 # 6 ドメイン × 20 万行 → data/out/*.csv.gz(圧縮後 約 21 MB、非圧縮 約 85 MB)
-scripts/gen-data --rows 1000     # 学習中は小さく実行
+scripts/gen-data --execute       # 6 ドメイン × 20 万行 → data/out/*.csv.gz(圧縮後 約 21 MB、非圧縮 約 85 MB)
+scripts/gen-data --execute --rows 1000  # 学習中は小さく実行
 ```
 同じシードなら同一のバイト列になります。国民 ID 風の番号は、チェックディジットを意図的に不正にしています。
 
@@ -26,15 +26,15 @@ scripts/gen-data --rows 1000     # 学習中は小さく実行
 
 ## 3. バッチロード
 ```bash
-scripts/load-batch --dry-run
-scripts/load-batch               # ガイド 02 のロール付与が済むまでは TERRAFORM のアイデンティティで実行
-scripts/load-batch               # もう一度: 新規ロードは 0 行(COPY はロード済みファイルを記憶)
+scripts/load-batch               # プレビュー
+scripts/load-batch --execute     # ガイド 02 のロール付与が済むまでは TERRAFORM のアイデンティティで実行
+scripts/load-batch --execute     # もう一度: 新規ロードは 0 行(COPY はロード済みファイルを記憶)
 ```
-`sql/raw_tables.sql` は単一のスキーマ定義から生成されます(`scripts/gen-data --emit-ddl sql/raw_tables.sql`)。差異が出るとテストが失敗します。
+`sql/raw_tables.sql` は単一のスキーマ定義から生成されます(`scripts/gen-data --execute --emit-ddl sql/raw_tables.sql`)。差異が出るとテストが失敗します。
 
 ## 4. ストリーミングロード
 ```bash
-scripts/stream-load --domain claims --file data/out/claims.csv.gz
+scripts/stream-load --execute --domain claims --file data/out/claims.csv.gz
 ```
 行は高性能 SDK(鍵ペア認証、バッチごとのオフセットトークン)を通じて `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` に入ります。`PRIVATE_KEY_PASSPHRASE` の export が必要です。`src/sfops/streaming.py` の `sdk_properties` が、`handson_tf` プロファイルを SDK のキー(`url`、`user`、`private_key_file`、`private_key_passphrase`、`role`)に変換します。**実アカウントでの完了は未確認です**。失敗した場合はエラーを貼ってください。
 
@@ -47,11 +47,11 @@ scripts/stream-load --domain claims --file data/out/claims.csv.gz
 snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS"
 snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS_STREAM"   # ストリーミングの手順の後
 snow sql -c handson_tf -q "LIST @HANBIT_RAW.CLAIMS.LANDING"                                                # ステージされた claims.csv.gz
-scripts/verify-step 03
+scripts/verify-step 03 --execute
 ```
 期待する結果:
 - 1 つ目の件数が `--rows`(既定 20 万)と一致すること。ほかの 5 ドメイン(`LENDING`、`FINANCE`、`UNDERWRITING`、`RISK_FRAUD`、`MARKETING`)も、スキーマとテーブル名を変えて同様に確認します。
-- 2 回目の `scripts/load-batch` では、各 `COPY` が `0 files processed` で終わり、件数が変わらないこと。
+- 2 回目の `scripts/load-batch --execute` では、各 `COPY` が `0 files processed` で終わり、件数が変わらないこと。
 - `_STREAM` の件数が、ストリーミングしたファイルの行数と一致すること。
 - `scripts/verify-step 03` は CLAIMS テーブルに行があることしか確認しないので、件数は自分の目で確認してください。
 

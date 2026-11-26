@@ -33,14 +33,14 @@ Iceberg v3 テーブルとマート → Streamlit による BI と AI。**列・
 コミット前に `scripts/check-secrets` を実行してください。
 
 ## はじめかた
-`scripts/install-tools && scripts/preflight` を実行し、ガイド 01 に進みます。
+`scripts/install-tools --execute && scripts/preflight` を実行し、ガイド 01 に進みます。
 
 ## 現状と免責
 - **オフラインでのテスト済み、実環境での通しの検証は未了です。** ユニットテスト、リンター、`terraform validate`、CI は通っていますが、
   すべてのガイドを実際の Snowflake アカウントで最後まで実行したわけではありません。エディションやリージョンに依存する機能
   (Cortex、マネージド Iceberg ストレージ、セマンティックビュー、Snowpipe Streaming)は構文や提供状況が異なる場合があります。確認方法は各ガイドに記載しています。
 - **費用はご自身の負担です。** クレジットの数値は $4.50/クレジットを仮定した見積もりです。`scripts/preflight` で実際の単価を確認し、
-  リソースモニターを維持し、使わないときは `scripts/cost-guard --suspend-all` を実行してください。
+  リソースモニターを維持し、使わないときは `scripts/cost-guard --suspend-all --execute` を実行してください。
 - 企業・人物・データはすべて**架空の合成データ**です。Snowflake Inc. とは無関係で、同社の承認を受けたものではありません。Snowflake は同社の商標です。
 
 ## ライセンスとコントリビュート
