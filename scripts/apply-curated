@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build the CURATED layer (Dynamic Tables) and attach data-quality functions. Idempotent (IF NOT EXISTS).
-# Usage: scripts/apply-curated [--dry-run] [--connection NAME] [--no-dmf]
+# Previews by default; acts only with --execute.
+# Usage: scripts/apply-curated [--execute|--dry-run] [--connection NAME] [--no-dmf]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -13,4 +14,4 @@ while [ $# -gt 0 ]; do
 done
 run snow sql -c "$conn" -f "$here/../sql/curated.sql"
 [ "$dmf" = "1" ] && run snow sql -c "$conn" -f "$here/../sql/dmf.sql"
-log_info "next: scripts/apply-policies, then scripts/access-matrix. When done for the day: scripts/cost-guard --suspend-all"
+done_msg "next: scripts/apply-policies --execute, then scripts/access-matrix. When done for the day: scripts/cost-guard --suspend-all --execute"

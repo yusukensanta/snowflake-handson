@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Batch path: create RAW tables, PUT files to each domain's internal stage, COPY INTO. Idempotent:
 # PUT skips files already staged and COPY skips files it already loaded (load metadata, 64 days).
-# Usage: scripts/load-batch [--dry-run] [--connection NAME] [--dir data/out] [--domain D]
+# Previews by default; acts only with --execute.
+# Usage: scripts/load-batch [--execute|--dry-run] [--connection NAME] [--dir data/out] [--domain D]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -12,7 +13,7 @@ set -- "${REST_ARGS[@]+"${REST_ARGS[@]}"}"
 while [ $# -gt 0 ]; do
   case "$1" in --connection) conn="$2"; shift 2 ;; --dir) dir="$2"; shift 2 ;; --domain) only="$2"; shift 2 ;; *) log_err "unknown arg $1"; exit 64 ;; esac
 done
-[ -d "$dir" ] || { log_err "$dir not found; run scripts/gen-data first"; exit 1; }
+[ -d "$dir" ] || { log_err "$dir not found; run scripts/gen-data --execute first"; exit 1; }
 sf() { run snow sql -c "$conn" --warehouse LOAD_WH -q "$1"; }
 run snow sql -c "$conn" --warehouse LOAD_WH -f "$here/../sql/raw_tables.sql"
 for f in "$dir"/*.csv.gz; do

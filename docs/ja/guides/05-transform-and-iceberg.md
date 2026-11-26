@@ -10,17 +10,17 @@
 **Dynamic Table** は、`TARGET_LAG` の範囲内で Snowflake が最新状態に保つ宣言的なクエリです。結果を記述すると、Snowflake が増分更新をスケジュールします。クラウドでの類似: 鮮度 SLA 付きのマテリアライズドビュー、または dbt モデルとそのスケジューラを 1 つにまとめたもの。
 
 ```bash
-scripts/gen-data --emit-curated sql/curated.sql   # コミット済み。単一のスキーマ定義から再生成可能
-scripts/apply-curated --dry-run
-scripts/apply-curated                              # HANBIT_CURATED に Dynamic Table 6 つとデータメトリックファンクション
+scripts/gen-data --execute --emit-curated sql/curated.sql  # コミット済み。単一のスキーマ定義から再生成可能
+scripts/apply-curated                              # プレビュー
+scripts/apply-curated --execute                    # HANBIT_CURATED に Dynamic Table 6 つとデータメトリックファンクション
 ```
 CURATED 層で行うこと: ビジネスキーで重複排除し、列名を維持して(タグベースのマスキングがそのまま効くように)、`CUSTOMER_PSEUDO_ID = SHA2(customer_id || ソルト)` を追加します。これにより、不正対策やマーケティングは生の識別子なしで結合できます。
 
-**`IF NOT EXISTS` を使う理由:** `CREATE OR REPLACE` は、テーブルに付けたマスキング/行ポリシーを黙って削除してしまいます。定義を変えるときは、そのテーブルを意図的に削除して作り直し、`scripts/apply-policies` を再実行してください。
+**`IF NOT EXISTS` を使う理由:** `CREATE OR REPLACE` は、テーブルに付けたマスキング/行ポリシーを黙って削除してしまいます。定義を変えるときは、そのテーブルを意図的に削除して作り直し、`scripts/apply-policies --execute` を再実行してください。
 
 **ラグとコスト:** `TARGET_LAG = '1 hour'` なら更新は少なく済みます。ラグ 1 分では `TRANSFORM_WH` が起き続け、コストが何倍にもなります。計測するには、1 日後に `TRANSFORM_WH` の `V_CREDITS_BY_WAREHOUSE` を比較します。使わないときはサスペンドします:
 ```bash
-scripts/cost-guard --suspend-all     # ウェアハウスは handson_admin、Dynamic Table は handson_tf(所有者は TF_ADMIN)でサスペンド。失敗があれば終了コード 1
+scripts/cost-guard --suspend-all --execute  # ウェアハウスは handson_admin、Dynamic Table は handson_tf(所有者は TF_ADMIN)でサスペンド。失敗があれば終了コード 1
 ```
 **データ品質:** `sql/dmf.sql` が、各キー列に `NULL_COUNT` と `DUPLICATE_COUNT` のデータメトリックファンクションを(毎時)付与します。結果は `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS` に出ます。
 
@@ -32,7 +32,7 @@ scripts/cost-guard --suspend-all     # ウェアハウスは handson_admin、Dyn
 ```bash
 snow sql -c handson_tf -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED"   # 6 行、scheduling_state は ACTIVE
 snow sql -c handson_tf --warehouse TRANSFORM_WH -q "SELECT (SELECT COUNT(*) FROM HANBIT_RAW.CLAIMS.CLAIMS) AS raw_n, (SELECT COUNT(*) FROM HANBIT_CURATED.CLAIMS.CLAIMS) AS curated_n"
-scripts/verify-step 05
+scripts/verify-step 05 --execute
 ```
 Dynamic Table が 6 つあり、`raw_n` と `curated_n` が一致すること。作成直後は最初のリフレッシュが実行中のことがあるので、数分待ってから再実行してください。Snowsight では **Monitoring > Dynamic tables** で見られます。
 
@@ -54,7 +54,7 @@ scripts/open-read          # Horizon Iceberg REST カタログ経由で PyIceber
 ```
 
 ### フォールバック
-ap-northeast-2 のトライアルでは、Snowflake 管理の Iceberg ストレージや v3 が有効でない場合があります。`scripts/preflight` が確認します。`sql/iceberg.sql` が失敗したら、この節は概念の学習にとどめ、エラーをメモして先へ進んでください。後続のガイドはこれに依存しません。
+ap-northeast-2 のトライアルでは、Snowflake 管理の Iceberg ストレージや v3 が有効でない場合があります。`scripts/preflight --execute` が確認します。`sql/iceberg.sql` が失敗したら、この節は概念の学習にとどめ、エラーをメモして先へ進んでください。後続のガイドはこれに依存しません。
 
 ## このステップ(Iceberg)のコスト
 約 1 クレジット(XS での CTAS 1 回とストレージ)。

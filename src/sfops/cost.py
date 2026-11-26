@@ -48,7 +48,7 @@ def format_report(rows: list[CostRow]) -> str:
     lines += ["-" * 38, f"{'TOTAL':<28}{total:>10.2f}",
               f"{'REMAINING to hard stop':<28}{HARD_STOP - total:>10.2f}", f"Status: {status.value}"]
     if status is Status.STOP:
-        lines.append("Run: scripts/cost-guard --suspend-all")
+        lines.append("Run: scripts/cost-guard --suspend-all --execute")
     return "\n".join(lines)
 
 

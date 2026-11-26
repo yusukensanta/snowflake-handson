@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Install terraform, SnowCLI, shellcheck and gitleaks. Idempotent; --dry-run prints the plan.
+# Install terraform, SnowCLI, shellcheck and gitleaks. Idempotent. Previews by default; acts only with --execute.
+# Usage: scripts/install-tools [--execute|--dry-run]
 set -eu
 # shellcheck source=lib/common.sh
 . "$(dirname "$0")/lib/common.sh"
 parse_common_flags "$@"
+[ "${#REST_ARGS[@]}" -eq 0 ] || { log_err "unknown arg ${REST_ARGS[0]}"; exit 64; }
 require_cmd mise || exit 1
 require_cmd uv || exit 1
 for tool in terraform shellcheck gitleaks; do

@@ -41,6 +41,9 @@
 
 ガードレール(リソースモニター、auto-suspend 60 秒)は、**どのワークロードより先に**作成します。
 
+## スクリプトは既定でプレビュー
+何かを変更するスクリプト(Snowflake、GitHub、手元のマシン、リポジトリのファイル)は、実行内容を表示するだけで、最後に `[preview] nothing was changed` と出力します。実際に実行するには `--execute` を付けます(`scripts/teardown` は `--yes` も必要です)。`scripts/check-secrets`、`scripts/cost-report`、`scripts/cost-guard --status`、`scripts/access-matrix` などの読み取り専用のチェックにフラグは不要です。
+
 ## 毎回のセッション開始時
 新しいターミナルでは毎回、鍵のパスフレーズが必要です。Terraform のコマンドには `scripts/tf-env` も必要です。スクリプトは、ガイドが `handson_admin`(`ACCOUNTADMIN`: bootstrap、`attach-monitors`、後片付け)と指定しない限り、`handson_tf` 接続(ロール `TF_ADMIN`)を使います。
 ```bash
@@ -48,7 +51,7 @@ cd snowflake-handson
 read -rs "PRIVATE_KEY_PASSPHRASE?Key passphrase: " && echo && export PRIVATE_KEY_PASSPHRASE   # zsh。bash では: read -rsp 'Key passphrase: ' PRIVATE_KEY_PASSPHRASE; echo; export PRIVATE_KEY_PASSPHRASE
 source scripts/tf-env      # terraform コマンドの前だけ(ガイド 02、04、05、07)
 ```
-各ガイドの末尾には**確認**ブロックがあり、実行するコマンド、期待する結果、Snowsight で同じ状態を見る場所を示します。`scripts/verify-step N` は読み取り専用のチェックを実行し、結果を `.progress/state.json` に記録します。
+各ガイドの末尾には**確認**ブロックがあり、実行するコマンド、期待する結果、Snowsight で同じ状態を見る場所を示します。`scripts/verify-step N` は読み取り専用のチェックを実行します。`--execute` を付けると、結果を `.progress/state.json` にも記録します。
 
 ## このステップのコスト
 0 クレジット(読むだけ)。
@@ -56,7 +59,7 @@ source scripts/tf-env      # terraform コマンドの前だけ(ガイド 02、0
 ## 確認
 
 ```bash
-scripts/verify-step 00        # scripts/check-secrets を実行します(Snowflake には接続しません)
+scripts/verify-step 00 --execute  # scripts/check-secrets を実行します(Snowflake には接続しません)
 cat .progress/state.json      # 確認済みの各ステップの UTC 時刻
 ```
 `[check-secrets] clean` に続いて `[info] step 00 verified; recorded in .progress/state.json` と表示されること。

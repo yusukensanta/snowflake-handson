@@ -16,8 +16,8 @@ You need no AWS account: files go to a Snowflake **internal stage** (encrypted b
 
 ## 1. Generate synthetic data
 ```bash
-scripts/gen-data                 # 200,000 rows x 6 domains → data/out/*.csv.gz (about 21 MB compressed, 85 MB raw)
-scripts/gen-data --rows 1000     # tiny run while you learn
+scripts/gen-data --execute       # 200,000 rows x 6 domains → data/out/*.csv.gz (about 21 MB compressed, 85 MB raw)
+scripts/gen-data --execute --rows 1000  # tiny run while you learn
 ```
 Same seed ⇒ identical bytes. National-ID-like numbers have an invalid check digit by design.
 
@@ -26,15 +26,15 @@ Same seed ⇒ identical bytes. National-ID-like numbers have an invalid check di
 
 ## 3. Batch load
 ```bash
-scripts/load-batch --dry-run
-scripts/load-batch               # run as the TERRAFORM identity until guide 02's roles are granted
-scripts/load-batch               # again: loads 0 new rows (COPY remembers loaded files)
+scripts/load-batch               # preview
+scripts/load-batch --execute     # run as the TERRAFORM identity until guide 02's roles are granted
+scripts/load-batch --execute     # again: loads 0 new rows (COPY remembers loaded files)
 ```
-`sql/raw_tables.sql` is generated from the single schema definition (`scripts/gen-data --emit-ddl sql/raw_tables.sql`); a test fails if they drift.
+`sql/raw_tables.sql` is generated from the single schema definition (`scripts/gen-data --execute --emit-ddl sql/raw_tables.sql`); a test fails if they drift.
 
 ## 4. Streaming load
 ```bash
-scripts/stream-load --domain claims --file data/out/claims.csv.gz
+scripts/stream-load --execute --domain claims --file data/out/claims.csv.gz
 ```
 Rows land in `HANBIT_RAW.CLAIMS.CLAIMS_STREAM` through the high-performance SDK (key-pair auth, offset tokens per batch). Needs `PRIVATE_KEY_PASSPHRASE` exported. `sdk_properties` in `src/sfops/streaming.py` maps the `handson_tf` profile to the SDK's keys (`url`, `user`, `private_key_file`, `private_key_passphrase`, `role`). **Not yet confirmed to complete on a live account**; if it fails, paste the error.
 
@@ -47,11 +47,11 @@ About 8 credits (XS `LOAD_WH`, auto-suspend 60 s). Streaming is billed per inges
 snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS"
 snow sql -c handson_tf --warehouse LOAD_WH -q "SELECT COUNT(*) AS n FROM HANBIT_RAW.CLAIMS.CLAIMS_STREAM"   # after the streaming step
 snow sql -c handson_tf -q "LIST @HANBIT_RAW.CLAIMS.LANDING"                                                # the staged claims.csv.gz
-scripts/verify-step 03
+scripts/verify-step 03 --execute
 ```
 Expect:
 - The first count equals `--rows` (200,000 by default). Repeat for the other five domains (`LENDING`, `FINANCE`, `UNDERWRITING`, `RISK_FRAUD`, `MARKETING`) by changing the schema and table name.
-- The second `scripts/load-batch` ends each `COPY` with `0 files processed` and the counts do not change.
+- The second `scripts/load-batch --execute` ends each `COPY` with `0 files processed` and the counts do not change.
 - The `_STREAM` count equals the rows in the file you streamed.
 - `scripts/verify-step 03` only checks that the CLAIMS table has rows, so read the counts yourself.
 

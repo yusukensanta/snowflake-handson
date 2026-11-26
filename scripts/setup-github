@@ -2,7 +2,8 @@
 # Create the GitHub environments, variables, secrets and branch protection that the CI/CD workflows need,
 # from your laptop via the GitHub CLI (REST API underneath). Idempotent: re-run to rotate secrets or fix drift.
 #
-# Usage: scripts/setup-github [--dry-run] [--repo OWNER/NAME] [--reviewer LOGIN] [--prevent-self-review]
+# Previews by default; acts only with --execute. A preview still reads from GitHub (auth, repo, reviewer id).
+# Usage: scripts/setup-github [--execute|--dry-run] [--repo OWNER/NAME] [--reviewer LOGIN] [--prevent-self-review]
 #                             [--skip-secrets] [--branch-protection]
 # Needs: gh authenticated with repo admin rights (`gh auth login`). Secret values are read from your shell
 # environment or files and sent straight to GitHub; they are never printed, logged or written to disk.
@@ -57,7 +58,7 @@ make_env() { # name, restrict_to_main(1/0)
     if [ "$DRY_RUN" = "1" ]; then printf '[dry-run] gh api -X POST repos/%s/environments/%s/deployment-branch-policies name=main\n' "$repo" "$name"
     else gh api -X POST "repos/$repo/environments/$name/deployment-branch-policies" -f name=main -f type=branch >/dev/null 2>&1 || true; fi
   fi
-  log_info "environment $name ready"
+  done_msg "environment $name ready"
 }
 
 pick() { # pick PREFIX NAME -> value of PREFIX_NAME else NAME ("" if unset)
@@ -105,6 +106,6 @@ fi
 
 if [ "$protect" = 1 ]; then
   api PUT "repos/$repo/branches/main/protection" '{"required_status_checks":{"strict":true,"contexts":["python","shell","secrets","terraform-validate"]},"enforce_admins":false,"required_pull_request_reviews":{"required_approving_review_count":0},"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}'
-  log_info "branch protection on main: PR + required CI checks, no force-push"
+  done_msg "branch protection on main: PR + required CI checks, no force-push"
 fi
-log_info "done. Verify: gh api repos/$repo/environments --jq '.environments[].name'"
+done_msg "done. Verify: gh api repos/$repo/environments --jq '.environments[].name'"

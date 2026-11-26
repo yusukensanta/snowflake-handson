@@ -9,10 +9,13 @@ use [Discussions](https://github.com/yusukensanta/snowflake-handson/discussions)
 - **Docs are bilingual**: edit the English guide in `docs/guides/` and its Japanese mirror in `docs/ja/guides/`
   (and `README.md` / `README.ja.md`) in the same pull request. Do not translate code or commands.
   After adding or renaming a guide, update `ORDER`/`LABEL` in `scripts/sync_doc_nav.py` and run
-  `uv run python scripts/sync_doc_nav.py`.
+  `uv run python scripts/sync_doc_nav.py --execute`.
 - **Every guide ends with a "Cost of this step" box** with credits you actually measured or a clearly marked estimate.
 - **Python ships with tests** (80% coverage minimum); data stays synthetic and seeded.
-- Scripts are idempotent, accept `--dry-run`, and source `scripts/lib/common.sh`.
+- Scripts are idempotent and source `scripts/lib/common.sh`. **Preview by default:** anything that changes Snowflake,
+  GitHub, the machine or repo files needs `--execute`; read-only checks run without it. `--dry-run` stays accepted.
+  Guard every side effect with `run` or `DRY_RUN`, report success with `done_msg`, and test it in the sandbox
+  (`tests/conftest.py`).
 
 ## Checks (CI runs the same)
 ```bash

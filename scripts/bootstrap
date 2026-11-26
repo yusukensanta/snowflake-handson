@@ -3,7 +3,8 @@
 #   1) account-level resource monitor (hard stop) and one monitor per warehouse -> guardrails BEFORE any workload
 #   2) role TF_ADMIN + service user TERRAFORM (key-pair only, no password)
 #   3) an encrypted private key under ~/.snowflake/ and a [handson_tf] connection entry
-# Idempotent. Usage: scripts/bootstrap [--dry-run] [--connection NAME] [--quota CREDITS]
+# Idempotent. Previews by default; acts only with --execute.
+# Usage: scripts/bootstrap [--execute|--dry-run] [--connection NAME] [--quota CREDITS]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh
@@ -37,9 +38,9 @@ sql "GRANT IMPORTED PRIVILEGES ON DATABASE SNOWFLAKE TO ROLE TF_ADMIN"
 sql "GRANT DATABASE ROLE SNOWFLAKE.DATA_METRIC_USER TO ROLE TF_ADMIN"
 
 if [ ! -f "$key" ]; then
-  log_info "generating encrypted key pair (passphrase from \$PRIVATE_KEY_PASSPHRASE; it is never stored)"
   run mkdir -p "$sf"; run chmod 700 "$sf"
   if [ "$DRY_RUN" != "1" ]; then
+    log_info "generating encrypted key pair (passphrase from \$PRIVATE_KEY_PASSPHRASE; it is never stored)"
     (umask 077; openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 | openssl pkcs8 -topk8 -v2 aes-256-cbc -passout env:PRIVATE_KEY_PASSPHRASE -out "$key")
   else log_info "[dry-run] would create $key and $pub"; fi
 fi
@@ -55,9 +56,12 @@ sql "GRANT ROLE TF_ADMIN TO USER TERRAFORM"
 # Attaching AP_SERVICE to this user needs the privilege on the USER itself; the account-level grant above is not enough.
 sql "GRANT APPLY AUTHENTICATION POLICY ON USER TERRAFORM TO ROLE TF_ADMIN"
 
-if [ "$DRY_RUN" != "1" ] && ! grep -q '^\[handson_tf\]' "$cfg" 2>/dev/null; then
-  acct="$(snow connection list --format json 2>/dev/null | python3 -c "import sys,json; print(next(c['parameters']['account'] for c in json.load(sys.stdin) if c['connection_name']=='$conn'))")"
-  (umask 077; printf '\n[handson_tf]\naccount = "%s"\nuser = "TERRAFORM"\nauthenticator = "SNOWFLAKE_JWT"\nprivate_key_file = "%s"\nrole = "TF_ADMIN"\nwarehouse = "TRANSFORM_WH"\n' "$acct" "$key" >> "$cfg")
-  log_info "added [handson_tf] to $cfg (set PRIVATE_KEY_PASSPHRASE in your shell when running terraform/snow)"
+if ! grep -q '^\[handson_tf\]' "$cfg" 2>/dev/null; then
+  if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would append [handson_tf] to $cfg"
+  else
+    acct="$(snow connection list --format json 2>/dev/null | python3 -c "import sys,json; print(next(c['parameters']['account'] for c in json.load(sys.stdin) if c['connection_name']=='$conn'))")"
+    (umask 077; printf '\n[handson_tf]\naccount = "%s"\nuser = "TERRAFORM"\nauthenticator = "SNOWFLAKE_JWT"\nprivate_key_file = "%s"\nrole = "TF_ADMIN"\nwarehouse = "TRANSFORM_WH"\n' "$acct" "$key" >> "$cfg")
+    log_info "added [handson_tf] to $cfg (set PRIVATE_KEY_PASSPHRASE in your shell when running terraform/snow)"
+  fi
 fi
-log_info "done. Next: scripts/cost-guard --status, then terraform -chdir=terraform/envs/handson init/apply, then scripts/attach-monitors"
+done_msg "done. Next: scripts/cost-guard --status, then terraform -chdir=terraform/envs/handson init/apply, then scripts/attach-monitors --execute"

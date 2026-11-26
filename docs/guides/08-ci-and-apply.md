@@ -49,7 +49,7 @@ openssl rsa -in ~/.snowflake/ci.p8 -pubout -out ~/.snowflake/ci.pub
 # register the public key as the SECOND key, so your laptop key keeps working and CI can rotate alone:
 #   ALTER USER TERRAFORM SET RSA_PUBLIC_KEY_2='<contents of ci.pub without the BEGIN/END lines>';
 ```
-Use a different key (and user) for plan. Rotate by generating a new key, setting `RSA_PUBLIC_KEY_2`, re-running `scripts/setup-github`, then removing the old key. Delete the local `.p8` files once uploaded if you do not need them.
+Use a different key (and user) for plan. Rotate by generating a new key, setting `RSA_PUBLIC_KEY_2`, re-running `scripts/setup-github --execute`, then removing the old key. Delete the local `.p8` files once uploaded if you do not need them.
 
 ### Check what is set (names only; GitHub never shows values)
 ```bash
@@ -58,14 +58,14 @@ gh secret list --env snowflake-plan; gh secret list --env snowflake-apply
 ```
 
 ## Scripted setup (steps 3 and 4)
-`scripts/setup-github` creates both environments with required reviewers, restricts `snowflake-apply` to `main`, sets the variables and secrets, and optionally protects `main`, all through the GitHub CLI. It is idempotent, so re-run it to rotate a secret. Needs `gh auth login` as a repo admin.
+`scripts/setup-github` creates both environments with required reviewers, restricts `snowflake-apply` to `main`, sets the variables and secrets, and optionally protects `main`, all through the GitHub CLI. It is idempotent, so re-run it with `--execute` to rotate a secret. Needs `gh auth login` as a repo admin.
 ```bash
 export TF_CLOUD_ORGANIZATION=… TF_WORKSPACE=… TF_API_TOKEN=…
 export PLAN_SNOWFLAKE_USER=TERRAFORM_PLAN  PLAN_SNOWFLAKE_ROLE=TF_PLAN   PLAN_SNOWFLAKE_PRIVATE_KEY_FILE=~/.snowflake/plan.p8
 export APPLY_SNOWFLAKE_USER=TERRAFORM      APPLY_SNOWFLAKE_ROLE=TF_ADMIN APPLY_SNOWFLAKE_PRIVATE_KEY_FILE=~/.snowflake/ci.p8
 export SNOWFLAKE_ORGANIZATION_NAME=… SNOWFLAKE_ACCOUNT_NAME=…           # shared by both
-scripts/setup-github --dry-run --branch-protection   # preview: prints calls, never values
-scripts/setup-github --branch-protection
+scripts/setup-github --branch-protection             # preview: prints calls, never values
+scripts/setup-github --execute --branch-protection
 ```
 Secret values come from your shell and key files and go straight to GitHub; the script never prints or stores them. Self-review is allowed by default (solo owner); add a second reviewer and `--prevent-self-review` for real four-eyes approval. Check the result with `gh api repos/OWNER/REPO/environments --jq '.environments[].name'`.
 

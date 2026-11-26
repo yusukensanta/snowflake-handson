@@ -1,4 +1,4 @@
--- Run by scripts/apply-policies as the TERRAFORM identity (role TF_ADMIN). Idempotent.
+-- Run by scripts/apply-policies --execute as the TERRAFORM identity (role TF_ADMIN). Idempotent.
 -- Row-access entitlements are DATA: change who sees which region by editing rows, not policy code.
 CREATE TABLE IF NOT EXISTS HANBIT_GOV.ENTITLEMENTS.ROLE_REGION (ROLE_NAME VARCHAR, REGION VARCHAR);
 DELETE FROM HANBIT_GOV.ENTITLEMENTS.ROLE_REGION;

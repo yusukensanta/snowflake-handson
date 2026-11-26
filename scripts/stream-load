@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Streaming path: Snowpipe Streaming (high-performance SDK) into HANBIT_RAW.<DOMAIN>.<DOMAIN>_STREAM.
-# Usage: scripts/stream-load --domain claims [--file data/out/claims.csv.gz] [--connection NAME] [--dry-run]
+# Usage: scripts/stream-load --domain claims [--file data/out/claims.csv.gz] [--connection NAME] [--execute|--dry-run]
+# Previews by default; acts only with --execute.
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/common.sh

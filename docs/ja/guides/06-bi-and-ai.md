@@ -31,7 +31,7 @@ Snowsight(Projects > Streamlit)を `CLAIMS_ADJUSTER` で開くと、Seoul の行
 ```bash
 snow sql -c handson_tf -q "SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS"          # CLAIMS_DASH
 snow sql -c handson_tf -q "LIST @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims"       # app.py などアップロードしたファイル
-scripts/verify-step 06
+scripts/verify-step 06 --execute
 ```
 そのあと Snowsight の **Projects > Streamlit > CLAIMS_DASH** を開きます。`CLAIMS_ADJUSTER` では地域だけが表示されること。AI を有効にした場合は、機微な列への質問が拒否またはマスクされること。
 
