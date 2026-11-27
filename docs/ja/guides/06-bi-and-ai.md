@@ -7,33 +7,39 @@
 **English:** [../../guides/06-bi-and-ai.md](../../guides/06-bi-and-ai.md)
 
 ## 1. BI: Snowflake 内の Streamlit ダッシュボード
-`apps/streamlit/` は小さなダッシュボードです(地域別の保険金請求と、プラットフォームのクレジット)。Snowflake の中で動くため、データはアカウントの外に出ず、ロールのマスキングポリシーと行アクセスポリシーもそのまま適用されます。管理者ロールではなく、最小権限のロールでデプロイしてください:
+`apps/streamlit/` は、地域別の保険金請求を表示する小さなダッシュボードです。Snowflake の中で動くため、データはアカウントの外に出ません。Streamlit アプリは**所有者権限(owner's rights)**で実行されます。クエリには閲覧者ではなく、アプリを所有するロールの権限とポリシーが使われます。つまり所有者をどのロールにするかがセキュリティ上の判断になります。そのため、アプリは管理者ロールではなく、このデータを必要とするペルソナ(`CLAIMS_ADJUSTER`)に所有させます。
+
+**前提:** ガイド 04 が完了し、`grant_personas_to_user` に `handson_admin` 接続のユーザーを設定して適用済みであること(ガイド 02)。`PRIVATE_KEY_PASSPHRASE` をエクスポートした状態で、リポジトリのルートから実行します。
+
 ```bash
-snow sql -c handson_tf -f sql/streamlit.sql   # ステージ、権限、アプリを作成
-snow sql -c handson_tf -q "PUT file://apps/streamlit/* @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims AUTO_COMPRESS=FALSE OVERWRITE=TRUE"   # アプリのファイルをアップロード
+snow sql -c handson_tf -f sql/streamlit.sql          # 1. TF_ADMIN: スキーマ、ステージ、権限
+snow sql -c handson_admin -f sql/streamlit_app.sql   # 2. CLAIMS_ADJUSTER: ファイルをアップロードし、アプリを作成
 ```
-Snowsight(Projects > Streamlit)を `CLAIMS_ADJUSTER` で開くと、Seoul の行だけが表示されます。ロールを切り替えると別のビューになります。ステータスの絞り込みは `queries.py` でホワイトリスト化されており(ユニットテスト済み)、ユーザー入力を文字列連結することはありません。
+- 接続を 2 つに分けるのは、請求データを読めるロールが必要なのは手順 2 だけで、Terraform のサービスユーザーにはそのロールを与えないためです。
+- 手順 2 は、アプリの作成時にファイルをアプリへコピーします。アプリを編集したら再実行してください(アプリに付与した `USAGE` 権限は失われます)。
 
-## 2. AI: Cortex / Cortex Code(Seoul で利用可能な場合のみ)
-`scripts/preflight` が、ap-northeast-2 で Cortex が使えるか、リージョン間推論が必要かを報告します。**このリポジトリの方針: リージョン内に留める。** リージョン間推論が必要なら、この節はスキップします。
+Snowsight の **Projects > Streamlit > CLAIMS_DASH** を `CLAIMS_ADJUSTER` で開くと、Seoul の行だけが表示されます。他のペルソナはアプリを開けません。アクセスを許可しても、各自のビューではなく同じ Seoul の行が見えます。ステータスの絞り込みは `queries.py` でホワイトリスト化されており(ユニットテスト済み)、ユーザー入力を文字列連結することはありません。保険金請求の担当者にコスト情報は不要なので、プラットフォームのクレジットはこのダッシュボードに載せていません。`scripts/cost-report` を使います(ガイド 07)。
 
-利用できる場合:
-1. **先に利用上限を設定する**: `ALTER ACCOUNT SET CORTEX_CODE_CLI_DAILY_EST_CREDIT_LIMIT_PER_USER = <小さな値>;`(現在値は preflight が表示します)。AI 機能はトークン単位で課金され、想定外のコストになることがあります。
-2. セマンティックビュー `sql/semantic_view.sql` を作成します。機微でない列だけを意図的に公開しているため、自然言語の質問が HEALTH データに届くことはありません。
+## 2. AI: Cortex Analyst(Seoul ではスキップ)
+2026-11-27 時点で、[Cortex Analyst のドキュメント](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-analyst)のネイティブ対応リージョンに AWS ap-northeast-2(Seoul)はなく、このリージョンではリージョン間推論が必要です。**このリポジトリの方針: リージョン内に留める。** アカウントが Seoul の場合、この節はスキップします。`scripts/preflight` は `CORTEX_ENABLED_CROSS_REGION` を表示しますが、利用可否は確認せず、設定も変更しません。
+
+利用するリージョンが一覧にある場合(以下の手順は実アカウントでは未実行です):
+1. **先にコスト管理の方法を確認する。** Analyst はメッセージ数で課金され、生成された SQL の実行にはウェアハウスの料金もかかります。利用状況は `CORTEX_ANALYST_USAGE_HISTORY` ビューで確認し、終わったら `ALTER ACCOUNT SET ENABLE_CORTEX_ANALYST = FALSE;`(ACCOUNTADMIN)で無効化できます。`CORTEX_CODE_CLI_DAILY_EST_CREDIT_LIMIT_PER_USER` が上限をかけるのは Cortex Code CLI だけで、Analyst には効きません。
+2. セマンティックビュー `sql/semantic_view.sql` を作成します。機微でない列だけを公開します。このファイルは権限を付与しません。質問するロールには、データベースロール `SNOWFLAKE.CORTEX_USER` または `SNOWFLAKE.CORTEX_ANALYST_USER` と、ビューの元テーブルへの `SELECT` が必要です。
 3. Cortex Analyst に「地域別の直近四半期の請求額合計」と質問し、生成された SQL をダッシュボードのクエリと比較します。
-4. **ガバナンス確認:** `MARKETING_ANALYST` で診断コードを尋ねます。回答は拒否またはマスクされるはずです。AI が Snowflake の統制を引き継ぐのは、データポリシーがアプリではなく列に付いているからです。
+4. **ガバナンス確認:** 診断コードを尋ねます。セマンティックビューはその列を含まないため、回答の材料がありません。`MARKETING_ANALYST` はそもそも請求テーブルへの `SELECT` がありません。これで分かるのはビューの公開範囲と権限の効果で、マスキングではありません。マスキングを証明するのはアクセスマトリクス(ガイド 04)です。
 
 ## このステップのコスト
-ダッシュボード: 約 2 クレジット(BI_WH、自動サスペンド 60 秒)。AI: 上限設定の範囲で最大 5 クレジット。スキップすれば 0。
+ダッシュボード: 約 2 クレジット(BI_WH、自動サスペンド 60 秒)。AI: スキップすれば 0。実行する場合は数回の質問分で、メッセージ数による課金です。
 
 ## 確認
 
 ```bash
-snow sql -c handson_tf -q "SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS"          # CLAIMS_DASH
-snow sql -c handson_tf -q "LIST @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims"       # app.py などアップロードしたファイル
+snow sql -c handson_admin --role CLAIMS_ADJUSTER -q "SHOW STREAMLITS IN SCHEMA HANBIT_MARTS.APPS"   # CLAIMS_DASH
+snow sql -c handson_tf -q "LIST @HANBIT_MARTS.APPS.STREAMLIT_STAGE/claims"                          # app.py、queries.py、environment.yml
 scripts/verify-step 06 --execute
 ```
-そのあと Snowsight の **Projects > Streamlit > CLAIMS_DASH** を開きます。`CLAIMS_ADJUSTER` では地域だけが表示されること。AI を有効にした場合は、機微な列への質問が拒否またはマスクされること。
+`verify-step` はクエリが実行できることしか確認しないため、1 つ目の出力に `CLAIMS_DASH` があることは自分で確認してください。そのあと上記の手順でアプリを開き、Seoul の行だけが表示されることを確認します。
 
 ---
 <!-- nav:bottom -->
