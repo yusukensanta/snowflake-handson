@@ -149,7 +149,8 @@ resource "snowflake_projection_policy" "id_joinable" {
   database = snowflake_database.gov.name
   schema   = snowflake_schema.policies.name
   name     = "PROJ_ID_JOINABLE"
-  body     = "PROJECTION_CONSTRAINT(ALLOW => NOT IS_ROLE_IN_SESSION('MARKETING_ANALYST'))"
+  # ALLOW takes only a literal true/false, so branch with CASE. CREATE accepts an expression; queries then fail.
+  body = "CASE WHEN IS_ROLE_IN_SESSION('MARKETING_ANALYST') THEN PROJECTION_CONSTRAINT(ALLOW => false) ELSE PROJECTION_CONSTRAINT(ALLOW => true) END"
 }
 
 # ---- Identity and network policies ----
