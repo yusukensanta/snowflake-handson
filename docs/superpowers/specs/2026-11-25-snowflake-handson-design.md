@@ -113,7 +113,7 @@ network policy, auth policies, resource monitors, budgets, alerts, ACCESS_HISTOR
 Design calls (mine, not the owner's):
 - **Snowflake-native transform** (Dynamic Tables). It teaches declarative refresh and lag-versus-cost, with no extra tool to install.
 - **Iceberg**: one managed Iceberg table family for curated claims and policies. The goal is to show format openness and the catalog trade-off, not to rebuild everything in Iceberg. External-catalog (Glue) mode is a conceptual page, not a lab.
-- **BI**: Streamlit in Snowflake as the primary app because it inherits the viewer's role, which is the best demo of policy enforcement. An optional appendix runs Metabase or Superset locally with a read-only key-pair service user.
+- **BI**: Streamlit in Snowflake as the primary app because data stays in the account and the owner role's policies apply (owner's rights; corrected 2026-11-27, an earlier draft said it inherits the viewer's role). An optional appendix runs Metabase or Superset locally with a read-only key-pair service user.
 - **AI**: Cortex Analyst over a semantic view for business users, and CoCo for the engineer (pipeline authoring, query debugging, governance review). Both run as roles that see only masked data.
 - **Data volume**: about 200 MB, deterministic seed, so results are reproducible and cost is predictable.
 

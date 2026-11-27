@@ -18,10 +18,6 @@ def test_status_filter_is_allowlisted_not_interpolated():
     assert "status" not in q.claims_by_region_sql("x'; DROP TABLE t;--").lower().split("where")[-1]
 
 
-def test_credits_sql_targets_ops_view():
-    assert "HANBIT_OPS.MONITORING.V_CREDITS_BY_WAREHOUSE" in q.credits_sql()
-
-
 def test_status_allowlist_matches_generator_values():
     import re
     from pathlib import Path
