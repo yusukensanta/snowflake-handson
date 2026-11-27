@@ -18,3 +18,21 @@ def test_projection_is_denied_to_marketing_and_allowed_to_everyone_else():
         "CASE WHEN IS_ROLE_IN_SESSION('MARKETING_ANALYST') THEN PROJECTION_CONSTRAINT(ALLOW => false) "
         "ELSE PROJECTION_CONSTRAINT(ALLOW => true) END"
     )
+
+
+TAG = re.search(r'resource "snowflake_tag" "sensitivity" \{.*?\n\}', TF, re.DOTALL)
+
+
+def test_tag_resource_manages_its_masking_policies_so_a_plan_detects_detachment():
+    assert TAG
+    for policy in ("sensitive_string", "sensitive_number"):
+        assert f"snowflake_masking_policy.{policy}.fully_qualified_name" in TAG[0]
+    assert "ignore_changes" not in TAG[0]
+
+
+def test_nothing_attaches_masking_outside_drift_detection():
+    assert 'resource "snowflake_execute" "tag_masking"' not in TF
+    # forget the old resource without running its revert, which would UNSET the policies
+    assert re.search(
+        r"removed \{\s*from = snowflake_execute\.tag_masking\s*lifecycle \{\s*destroy = false\s*\}\s*\}", TF
+    )
