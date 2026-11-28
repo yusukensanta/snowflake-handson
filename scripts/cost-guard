@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Emergency / routine cost control. --status (default, read-only) | --suspend-all (suspends only with --execute).
+# --suspend-all stops started warehouses, Dynamic Tables and their data quality schedules. Alerts, tasks, pipes and
+# other serverless features are not covered.
 # Usage: scripts/cost-guard [--execute|--dry-run] [--connection NAME] [--dt-connection NAME] [--status|--suspend-all]
 set -eu
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -28,7 +30,7 @@ case "$mode" in
     echo "warehouses:"
     show_json "SHOW WAREHOUSES" name state size auto_suspend auto_resume resource_monitor ;;
   suspend)
-    if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would suspend every started warehouse and active Dynamic Table; nothing is suspended"; exit 0; fi
+    if [ "$DRY_RUN" = "1" ]; then log_info "[dry-run] would suspend every started warehouse, active Dynamic Table and data quality schedule; nothing is suspended"; exit 0; fi
     names="$(snow sql -c "$conn" --format json -q "SHOW WAREHOUSES" | python3 -c "import sys,json; print(' '.join(w['name'] for w in json.load(sys.stdin) if w['state']!='SUSPENDED'))")"
     failed=0
     for w in $names; do
@@ -37,10 +39,28 @@ case "$mode" in
     [ -n "$names" ] || log_info "nothing running"
     # Dynamic Tables refresh on a schedule and wake their warehouse; suspend them too. TF_ADMIN owns them and ACCOUNTADMIN
     # has no OPERATE on them (it fails with "Insufficient privileges"), so this part uses --dt-connection (default handson_tf).
-    dts="$(snow sql -c "$dt_conn" --format json -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED" 2>/dev/null | python3 -c "import sys,json; print(' '.join(t['database_name']+'.'+t['schema_name']+'.'+t['name'] for t in json.load(sys.stdin) if t.get('scheduling_state')!='SUSPENDED'))" 2>/dev/null || true)"
-    for t in $dts; do
-      if snow sql -c "$dt_conn" -q "ALTER DYNAMIC TABLE $t SUSPEND" >/dev/null; then log_info "suspended dynamic table $t"; else failed=1; fi
-    done
+    # Their data quality schedules (sql/dmf.sql) are serverless, so no resource monitor stops them. A suspended Dynamic
+    # Table keeps its schedule, hence every table is listed. Set '' to suspend: UNSET restores the hourly default.
+    # Check the database first so that a re-run after teardown is not an error, while a real listing failure is.
+    if ! found="$(snow sql -c "$dt_conn" --format json -q "SHOW DATABASES LIKE 'HANBIT_CURATED'" \
+        | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null)"; then
+      log_err "could not check for HANBIT_CURATED via $dt_conn"; failed=1
+    elif [ "$found" = "0" ]; then
+      log_info "HANBIT_CURATED is not visible to $dt_conn; nothing to suspend there"
+    elif ! tables="$(snow sql -c "$dt_conn" --format json -q "SHOW DYNAMIC TABLES IN DATABASE HANBIT_CURATED" | python3 -c "
+import sys, json
+for t in json.load(sys.stdin):
+    print(t['database_name'] + '.' + t['schema_name'] + '.' + t['name'], t.get('scheduling_state'))" 2>/dev/null)"; then
+      log_err "could not list Dynamic Tables via $dt_conn"; failed=1
+    else
+      while read -r t state; do
+        [ -n "$t" ] || continue
+        if [ "$state" != "SUSPENDED" ]; then
+          if snow sql -c "$dt_conn" -q "ALTER DYNAMIC TABLE $t SUSPEND" </dev/null >/dev/null; then log_info "suspended dynamic table $t"; else failed=1; fi
+        fi
+        if snow sql -c "$dt_conn" -q "ALTER TABLE $t SET DATA_METRIC_SCHEDULE = ''" </dev/null >/dev/null; then log_info "suspended data quality checks on $t"; else failed=1; fi
+      done <<<"$tables"
+    fi
     # An emergency stop that fails quietly is worse than one that fails loudly.
     [ "$failed" = "0" ] || { log_err "some suspends failed (see errors above); the stop is incomplete"; exit 1; } ;;
 esac
