@@ -61,11 +61,14 @@ Layers of protection, cheapest first: warehouse `auto_suspend = 60`; per-warehou
 **What the monitors do not cover:** [resource monitors](https://docs.snowflake.com/en/user-guide/resource-monitors) work for warehouses only. They neither count nor stop serverless features, such as the data quality checks from guide 05 (`DATA_QUALITY_MONITORING` in the report), serverless tasks or Snowpipe Streaming. Watch those lines in `scripts/cost-report`, or add a [budget](https://docs.snowflake.com/en/user-guide/budgets). `scripts/cost-guard --suspend-all --execute` suspends warehouses, Dynamic Tables and their data quality checks, but not alerts, tasks or pipes. To resume, see guide 05.
 
 ## 5. Teardown
+`terraform destroy` reads its credentials from `SNOWFLAKE_*` variables, and `scripts/teardown` does not load them. Run all of this in one shell, from the repo root:
 ```bash
+read -rs PRIVATE_KEY_PASSPHRASE && export PRIVATE_KEY_PASSPHRASE   # type the passphrase, then Enter
+source scripts/tf-env                                              # exports the variables Terraform reads
 scripts/teardown               # preview
 scripts/teardown --execute --yes  # suspend compute, terraform destroy, drop OPS db, monitors, TERRAFORM user, TF_ADMIN
 ```
-It is destructive: without `--execute` it only previews, and with `--execute` it refuses to run without `--yes`. Afterwards delete the local `~/.snowflake/*.p8` keys you generated.
+The `snow sql -c handson_admin` steps inside the script keep the user, role and key of that connection. It is destructive: without `--execute` it only previews, and with `--execute` it refuses to run without `--yes`. Afterwards delete the local `~/.snowflake/*.p8` keys you generated.
 
 ## Cost of this step (FinOps and teardown)
 Under 0.5 credits; teardown stops all recurring cost.

@@ -61,11 +61,14 @@ scripts/cost-guard --suspend-all --execute
 **モニターの対象外:** [リソースモニター](https://docs.snowflake.com/en/user-guide/resource-monitors)が扱うのはウェアハウスだけです。ガイド 05 のデータ品質チェック(レポートの `DATA_QUALITY_MONITORING`)、サーバーレスタスク、Snowpipe Streaming などのサーバーレス機能は、集計も停止もされません。`scripts/cost-report` の該当行を確認するか、[予算(budget)](https://docs.snowflake.com/en/user-guide/budgets)を追加してください。`scripts/cost-guard --suspend-all --execute` はウェアハウス、Dynamic Table、そのデータ品質チェックをサスペンドしますが、アラート、タスク、パイプは対象外です。再開方法はガイド 05 を参照してください。
 
 ## 5. 後片付け
+`terraform destroy` は認証情報を `SNOWFLAKE_*` 変数から読み取りますが、`scripts/teardown` はそれらを読み込みません。リポジトリのルートで、すべて同じシェルで実行してください:
 ```bash
+read -rs PRIVATE_KEY_PASSPHRASE && export PRIVATE_KEY_PASSPHRASE   # パスフレーズを入力して Enter
+source scripts/tf-env                                              # Terraform が読む変数を export する
 scripts/teardown               # プレビュー
 scripts/teardown --execute --yes  # コンピュートをサスペンドし、terraform destroy、OPS DB・モニター(アカウントとウェアハウス)・TERRAFORM ユーザー・TF_ADMIN を削除
 ```
-破壊的な操作のため、`--execute` がなければプレビューのみで、`--execute` を付けても `--yes` なしでは実行を拒否します。完了後は、生成したローカルの `~/.snowflake/*.p8` 鍵も削除してください。
+スクリプト内の `snow sql -c handson_admin` の手順は、その接続のユーザー、ロール、鍵をそのまま使います。破壊的な操作のため、`--execute` がなければプレビューのみで、`--execute` を付けても `--yes` なしでは実行を拒否します。完了後は、生成したローカルの `~/.snowflake/*.p8` 鍵も削除してください。
 
 ## このステップ(FinOps と後片付け)のコスト
 0.5 クレジット未満。後片付けにより、継続的なコストはすべて止まります。
