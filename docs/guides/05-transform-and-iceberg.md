@@ -20,9 +20,17 @@ What the curated layer does: deduplicates on the business key, keeps the column 
 
 **Lag versus cost:** `TARGET_LAG = '1 hour'` keeps refreshes rare. A 1-minute lag would keep `TRANSFORM_WH` awake and cost many times more. Measure: after one day compare `V_CREDITS_BY_WAREHOUSE` for `TRANSFORM_WH`. Suspend when idle:
 ```bash
-scripts/cost-guard --suspend-all --execute  # warehouses via handson_admin, Dynamic Tables via handson_tf (TF_ADMIN owns them); exits 1 if any suspend fails
+scripts/cost-guard --suspend-all --execute  # warehouses via handson_admin, Dynamic Tables and data quality checks via handson_tf (TF_ADMIN owns them); exits 1 if any suspend fails
 ```
-**Data quality:** `sql/dmf.sql` attaches `NULL_COUNT` and `DUPLICATE_COUNT` data metric functions (hourly) to each key column; results appear in `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS`.
+**Data quality:** `sql/dmf.sql` attaches `NULL_COUNT` and `DUPLICATE_COUNT` data metric functions (hourly) to each key column; results appear in `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS`. These checks are serverless: they keep costing credits until suspended, and no resource monitor stops them.
+
+To resume after a suspend (this starts spending again):
+```bash
+for t in UNDERWRITING.UNDERWRITING CLAIMS.CLAIMS LENDING.LENDING FINANCE.FINANCE RISK_FRAUD.RISK_FRAUD MARKETING.MARKETING; do
+  snow sql -c handson_tf -q "ALTER DYNAMIC TABLE HANBIT_CURATED.$t RESUME"
+  snow sql -c handson_tf -q "ALTER TABLE HANBIT_CURATED.$t SET DATA_METRIC_SCHEDULE = '60 MINUTE'"
+done
+```
 
 ## Cost of this step (transform)
 About 8 credits, mostly the first full refresh of 1.2 million rows on XS.

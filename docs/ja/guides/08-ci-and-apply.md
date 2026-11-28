@@ -22,7 +22,7 @@
 3. **GitHub Environments**(Settings > Environments): `snowflake-plan`(**必須レビュアー**を設定。ワークフローの変更を含む PR のコードは、あなたが内容を確認した後でのみ認証情報付きで実行されます)と `snowflake-apply`(**必須レビュアー**、デプロイ対象ブランチは `main` のみ)。シークレットは環境にだけ登録し、各ジョブは自分の環境のものだけを読みます。**`snowflake-plan` には別の読み取り専用の Snowflake ID**(別ユーザーと、リフレッシュに必要な範囲に絞ったロール)を使い、`TF_ADMIN` の鍵は `snowflake-apply` にだけ置きます。変数 `SNOWFLAKE_ROLE` は環境ごとに設定します。シークレット:
    `SNOWFLAKE_ORGANIZATION_NAME`、`SNOWFLAKE_ACCOUNT_NAME`、`SNOWFLAKE_USER`、`SNOWFLAKE_PRIVATE_KEY`、`SNOWFLAKE_PRIVATE_KEY_PASSPHRASE`、`TF_API_TOKEN`、必要なら `TFVARS_JSON`(非公開の tfvars の内容を JSON にしたもの)。変数: `TF_CLOUD_ORGANIZATION`、`TF_WORKSPACE`。
 4. **`main` のブランチ保護:** `ci` のチェックとプルリクエストを必須にします。
-5. **ネットワークポリシー:** GitHub ホストランナーの IP は変動します。`TERRAFORM` ユーザーには `NP_HANDSON` を強制しないでください。CI がサインインできなくなります。人間のユーザーは引き続き制限します。
+5. **ネットワークポリシー:** GitHub ホストランナーの IP は変動します。`enforce_account_policies = false` のままにしてください([ガイド 07](07-monitoring-finops-teardown.md) のセクション 2)。このフラグは `NP_HANDSON` をアカウント全体に適用するため、`TERRAFORM` と plan 用ユーザーもブロックされ、CI がサインインできなくなります。
 
 ## シークレットと変数の一覧
 ワークフローが読み取るすべての値です。ここにある値は一切コミットしません。`scripts/setup-github`(後述)がすべて設定します。

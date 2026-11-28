@@ -20,9 +20,17 @@ CURATED 層で行うこと: ビジネスキーで重複排除し、列名を維�
 
 **ラグとコスト:** `TARGET_LAG = '1 hour'` なら更新は少なく済みます。ラグ 1 分では `TRANSFORM_WH` が起き続け、コストが何倍にもなります。計測するには、1 日後に `TRANSFORM_WH` の `V_CREDITS_BY_WAREHOUSE` を比較します。使わないときはサスペンドします:
 ```bash
-scripts/cost-guard --suspend-all --execute  # ウェアハウスは handson_admin、Dynamic Table は handson_tf(所有者は TF_ADMIN)でサスペンド。失敗があれば終了コード 1
+scripts/cost-guard --suspend-all --execute  # ウェアハウスは handson_admin、Dynamic Table とデータ品質チェックは handson_tf(所有者は TF_ADMIN)でサスペンド。失敗があれば終了コード 1
 ```
-**データ品質:** `sql/dmf.sql` が、各キー列に `NULL_COUNT` と `DUPLICATE_COUNT` のデータメトリックファンクションを(毎時)付与します。結果は `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS` に出ます。
+**データ品質:** `sql/dmf.sql` が、各キー列に `NULL_COUNT` と `DUPLICATE_COUNT` のデータメトリックファンクションを(毎時)付与します。結果は `SNOWFLAKE.LOCAL.DATA_QUALITY_MONITORING_RESULTS` に出ます。これらのチェックはサーバーレスのため、サスペンドするまでクレジットを消費し続け、リソースモニターでは停止できません。
+
+サスペンド後に再開するには(再びコストがかかります):
+```bash
+for t in UNDERWRITING.UNDERWRITING CLAIMS.CLAIMS LENDING.LENDING FINANCE.FINANCE RISK_FRAUD.RISK_FRAUD MARKETING.MARKETING; do
+  snow sql -c handson_tf -q "ALTER DYNAMIC TABLE HANBIT_CURATED.$t RESUME"
+  snow sql -c handson_tf -q "ALTER TABLE HANBIT_CURATED.$t SET DATA_METRIC_SCHEDULE = '60 MINUTE'"
+done
+```
 
 ## このステップ(変換)のコスト
 約 8 クレジット。ほとんどは XS での 120 万行の初回フルリフレッシュです。

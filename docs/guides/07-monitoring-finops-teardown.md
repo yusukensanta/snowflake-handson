@@ -22,13 +22,21 @@ Set `alert_email` (a verified user email, in the git-ignored `terraform.tfvars`)
 `ACCOUNT_USAGE` data lags by up to a few hours; use `INFORMATION_SCHEMA` table functions for real time. Cloud mapping: these views ≈ CloudTrail + CloudWatch metrics / Cloud Audit Logs + Monitoring.
 
 ## 2. Identity and network hardening
-`governance` creates (but does **not** enforce) `NP_HANDSON`, `AP_HUMAN` (MFA required), `SP_HUMAN` (30 min idle) and creates `AP_SERVICE` (key-pair only); `scripts/apply-policies` attaches it to the `TERRAFORM` user. To enforce on the account:
-1. Set `allowed_ips = ["<your public IP>/32"]` and confirm your MFA is enrolled.
-2. `terraform apply -var enforce_account_policies=true`.
+`governance` creates (but does **not** enforce) `NP_HANDSON`, `AP_HUMAN` (MFA required), `SP_HUMAN` (30 min idle) and creates `AP_SERVICE` (key-pair only); `scripts/apply-policies` attaches `AP_SERVICE` to the `TERRAFORM` user.
+
+**If you will set up CI ([guide 08](08-ci-and-apply.md)), skip account enforcement:** leave `enforce_account_policies` at `false`, in `terraform.tfvars` and in `TFVARS_JSON`. The flag attaches `NP_HANDSON` and `AP_HUMAN` to the whole account. An account [network policy](https://docs.snowflake.com/en/user-guide/network-policies) applies to every user who has no more specific one, including `TERRAFORM` and the plan user, so GitHub-hosted runners could not sign in. Both policies then stay unattached. If you already enforced them, set the flag to `false` and apply before guide 08.
+
+Only if you will **not** use CI, enforce on the account:
+1. Confirm your MFA is enrolled, then set `allowed_ips = ["<your public IP>/32"]` and `enforce_account_policies = true` in the git-ignored `terraform/envs/handson/terraform.tfvars`. Do not pass the flag with `-var`: a later apply without it would detach the policies.
+2. Apply:
+```bash
+source scripts/tf-env
+terraform -chdir=terraform/envs/handson apply
+```
 Keep a second admin session open while testing: a wrong IP locks you out.
 
 ## 3. Audit and Trust Center
-`sql/audit.sql` answers: who read HEALTH columns this week, which grants changed, and where RAW data flows. In Snowsight open **Governance & security > Trust Center**, enable the CIS benchmark scanner, read the findings (expect MFA/network-policy findings until section 2 is enforced), and fix one.
+`sql/audit.sql` answers: who read HEALTH columns this week, which grants changed, and where RAW data flows. In Snowsight open **Governance & security > Trust Center**, enable the CIS benchmark scanner, read the findings (MFA/network-policy findings remain unless section 2 is enforced, which CI users skip), and fix one.
 
 ## Cost of this step (monitoring)
 About 4 credits (hourly alerts plus queries on `MONITOR_WH`).
@@ -45,10 +53,12 @@ Expect rows from the credits view (ACCOUNT_USAGE lags by up to a few hours, so a
 ## 4. FinOps: know the number before it knows you
 ```bash
 scripts/cost-report            # credits by service vs plan 53 / warn 70 / hard stop 80 (exit 2 at 70+)
-scripts/cost-guard --status    # warehouses, monitors, dynamic tables
+scripts/cost-guard --status    # resource monitors and warehouses
 scripts/cost-guard --suspend-all --execute
 ```
-Layers of protection, cheapest first: warehouse `auto_suspend = 60`; per-warehouse resource monitors (created by `scripts/bootstrap`, attached by `scripts/attach-monitors`); the account monitor `HANDSON_ACCOUNT_MONITOR` with a hard stop at 80 credits (created by `scripts/bootstrap`); and this report. `ACCOUNT_USAGE` lags up to about 3 hours, so the monitor, not the report, is the real brake. Credits are an estimate until you confirm the Seoul rate in `scripts/preflight`.
+Layers of protection, cheapest first: warehouse `auto_suspend = 60`; per-warehouse resource monitors (created by `scripts/bootstrap`, attached by `scripts/attach-monitors`); the account monitor `HANDSON_ACCOUNT_MONITOR` with a hard stop at 80 credits (created by `scripts/bootstrap`); and this report. `ACCOUNT_USAGE` lags up to about 3 hours, so for warehouses the monitor, not the report, is the real brake. Credits are an estimate until you confirm the Seoul rate in `scripts/preflight`.
+
+**What the monitors do not cover:** [resource monitors](https://docs.snowflake.com/en/user-guide/resource-monitors) work for warehouses only. They neither count nor stop serverless features, such as the data quality checks from guide 05 (`DATA_QUALITY_MONITORING` in the report), serverless tasks or Snowpipe Streaming. Watch those lines in `scripts/cost-report`, or add a [budget](https://docs.snowflake.com/en/user-guide/budgets). `scripts/cost-guard --suspend-all --execute` suspends warehouses, Dynamic Tables and their data quality checks, but not alerts, tasks or pipes. To resume, see guide 05.
 
 ## 5. Teardown
 ```bash
