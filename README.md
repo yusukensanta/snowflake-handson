@@ -25,7 +25,8 @@ proven by an automated access test matrix, plus monitoring, FinOps and a clean t
 | opt | [Appendix AWS](docs/guides/appendix-aws.md) | Your own S3 bucket |
 
 ## Cost
-Planned ~53 credits (about $240 at $4.50), reserve ~20, hard stop 80 credits via resource monitor.
+Planned ~53 credits (about $240 at $4.50), reserve ~20, hard stop 80 credits via resource monitor
+(warehouses only; serverless features are not covered, see [guide 07](docs/guides/07-monitoring-finops-teardown.md)).
 Details in [guide 00](docs/guides/00-orientation.md).
 
 ## Security baseline

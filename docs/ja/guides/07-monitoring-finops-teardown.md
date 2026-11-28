@@ -22,13 +22,21 @@ Terraform の `monitoring` モジュールが、`SNOWFLAKE.ACCOUNT_USAGE` 上に
 `ACCOUNT_USAGE` のデータは最大で数時間遅れます。リアルタイムには `INFORMATION_SCHEMA` のテーブル関数を使います。クラウドとの対応: これらのビュー ≈ CloudTrail + CloudWatch メトリクス / Cloud Audit Logs + Monitoring。
 
 ## 2. ID とネットワークの強化
-`governance` は `NP_HANDSON`、`AP_HUMAN`(MFA 必須)、`SP_HUMAN`(アイドル 30 分)を作成し(**強制はしません**)、`AP_SERVICE`(鍵ペアのみ)も作成します。`TERRAFORM` ユーザーへの適用は `scripts/apply-policies` が行います。アカウントに強制するには:
-1. `allowed_ips = ["<あなたのグローバル IP>/32"]` を設定し、MFA が登録済みであることを確認します。
-2. `terraform apply -var enforce_account_policies=true` を実行します。
+`governance` は `NP_HANDSON`、`AP_HUMAN`(MFA 必須)、`SP_HUMAN`(アイドル 30 分)を作成し(**強制はしません**)、`AP_SERVICE`(鍵ペアのみ)も作成します。`AP_SERVICE` の `TERRAFORM` ユーザーへの適用は `scripts/apply-policies` が行います。
+
+**CI([ガイド 08](08-ci-and-apply.md))を設定する場合、アカウントへの強制はスキップします。** `terraform.tfvars` と `TFVARS_JSON` のどちらでも、`enforce_account_policies` は `false` のままにしてください。このフラグは `NP_HANDSON` と `AP_HUMAN` をアカウント全体に適用します。アカウントの[ネットワークポリシー](https://docs.snowflake.com/en/user-guide/network-policies)は、より具体的なポリシーを持たないすべてのユーザー(`TERRAFORM` と plan 用ユーザーを含む)に適用されるため、GitHub ホストランナーがサインインできなくなります。スキップした場合、両ポリシーは適用されないままになります。すでに強制した場合は、ガイド 08 の前にフラグを `false` にして apply してください。
+
+CI を**使わない**場合に限り、アカウントに強制します:
+1. MFA が登録済みであることを確認してから、git 管理対象外の `terraform/envs/handson/terraform.tfvars` に `allowed_ips = ["<あなたのグローバル IP>/32"]` と `enforce_account_policies = true` を設定します。フラグを `-var` で渡さないでください。後でフラグなしの apply を実行すると、ポリシーが外れます。
+2. 適用します:
+```bash
+source scripts/tf-env
+terraform -chdir=terraform/envs/handson apply
+```
 テスト中は別の管理者セッションを開いたままにしてください。IP を間違えると締め出されます。
 
 ## 3. 監査と Trust Center
-`sql/audit.sql` は、今週 HEALTH 列を読んだのは誰か、どの権限が変わったか、RAW のデータがどこへ流れるかに答えます。Snowsight の **Governance & security > Trust Center** で CIS ベンチマークのスキャナーを有効にし、検出結果を読み(セクション 2 を強制するまでは MFA/ネットワークポリシーの指摘が出ます)、1 件を修正します。
+`sql/audit.sql` は、今週 HEALTH 列を読んだのは誰か、どの権限が変わったか、RAW のデータがどこへ流れるかに答えます。Snowsight の **Governance & security > Trust Center** で CIS ベンチマークのスキャナーを有効にし、検出結果を読み(セクション 2 を強制しない限り MFA/ネットワークポリシーの指摘は残ります。CI を使う場合はスキップします)、1 件を修正します。
 
 ## このステップ(監視)のコスト
 約 4 クレジット(`MONITOR_WH` での毎時のアラートとクエリ)。
@@ -45,10 +53,12 @@ scripts/verify-step 07 --execute
 ## 4. FinOps: 請求に気づかれる前に数字を知る
 ```bash
 scripts/cost-report            # サービス別クレジットを計画 53 / 警告 70 / 強制停止 80 と比較(70 以上は終了コード 2)
-scripts/cost-guard --status    # ウェアハウス、モニター、Dynamic Table
+scripts/cost-guard --status    # リソースモニターとウェアハウス
 scripts/cost-guard --suspend-all --execute
 ```
-保護は安い順に重ねます。ウェアハウスの `auto_suspend = 60`、ウェアハウス単位のリソースモニター(`scripts/bootstrap` が作成し、`scripts/attach-monitors` が割り当て)、80 クレジットで強制停止するアカウントモニター `HANDSON_ACCOUNT_MONITOR`(`scripts/bootstrap` が作成)、そしてこのレポートです。`ACCOUNT_USAGE` は最大 3 時間ほど遅れるため、本当のブレーキはレポートではなくモニターです。Seoul のレートを `scripts/preflight` で確認するまで、クレジット数は推定値です。
+保護は安い順に重ねます。ウェアハウスの `auto_suspend = 60`、ウェアハウス単位のリソースモニター(`scripts/bootstrap` が作成し、`scripts/attach-monitors` が割り当て)、80 クレジットで強制停止するアカウントモニター `HANDSON_ACCOUNT_MONITOR`(`scripts/bootstrap` が作成)、そしてこのレポートです。`ACCOUNT_USAGE` は最大 3 時間ほど遅れるため、ウェアハウスについての本当のブレーキはレポートではなくモニターです。Seoul のレートを `scripts/preflight` で確認するまで、クレジット数は推定値です。
+
+**モニターの対象外:** [リソースモニター](https://docs.snowflake.com/en/user-guide/resource-monitors)が扱うのはウェアハウスだけです。ガイド 05 のデータ品質チェック(レポートの `DATA_QUALITY_MONITORING`)、サーバーレスタスク、Snowpipe Streaming などのサーバーレス機能は、集計も停止もされません。`scripts/cost-report` の該当行を確認するか、[予算(budget)](https://docs.snowflake.com/en/user-guide/budgets)を追加してください。`scripts/cost-guard --suspend-all --execute` はウェアハウス、Dynamic Table、そのデータ品質チェックをサスペンドしますが、アラート、タスク、パイプは対象外です。再開方法はガイド 05 を参照してください。
 
 ## 5. 後片付け
 ```bash

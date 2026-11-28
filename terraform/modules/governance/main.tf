@@ -31,11 +31,12 @@ resource "snowflake_tag" "sensitivity" {
   ordered_allowed_values = ["PII", "HEALTH", "CREDIT", "FINANCIAL"]
   comment                = "Data sensitivity class; masking policies attach to this tag"
 
-  # The masking policies are attached by snowflake_execute.tag_masking below. The tag resource reads them back from Snowflake,
-  # and without this a plan shows them as removed; applying that plan would unset the masking.
-  lifecycle {
-    ignore_changes = [masking_policies]
-  }
+  # Attached here, not through snowflake_execute: the provider reads the attachment back, so a plan shows when the
+  # masking has been unset and apply restores it.
+  masking_policies = [
+    snowflake_masking_policy.sensitive_string.fully_qualified_name,
+    snowflake_masking_policy.sensitive_number.fully_qualified_name,
+  ]
 }
 
 locals {
@@ -98,14 +99,13 @@ resource "snowflake_masking_policy" "sensitive_number" {
   EOT
 }
 
-resource "snowflake_execute" "tag_masking" {
-  execute = "ALTER TAG HANBIT_GOV.TAGS.SENSITIVITY SET MASKING POLICY HANBIT_GOV.POLICIES.MASK_SENSITIVE_STRING, MASKING POLICY HANBIT_GOV.POLICIES.MASK_SENSITIVE_NUMBER"
-  revert  = "ALTER TAG HANBIT_GOV.TAGS.SENSITIVITY UNSET MASKING POLICY HANBIT_GOV.POLICIES.MASK_SENSITIVE_STRING, MASKING POLICY HANBIT_GOV.POLICIES.MASK_SENSITIVE_NUMBER"
-  depends_on = [
-    snowflake_masking_policy.sensitive_string,
-    snowflake_masking_policy.sensitive_number,
-    snowflake_tag.sensitivity,
-  ]
+# Replaced by snowflake_tag.sensitivity.masking_policies. Forget it without running its revert, which would unset
+# the masking.
+removed {
+  from = snowflake_execute.tag_masking
+  lifecycle {
+    destroy = false
+  }
 }
 
 # ---- Row access: data-driven. The table must exist before the policy (Snowflake validates the policy body when it
@@ -149,7 +149,8 @@ resource "snowflake_projection_policy" "id_joinable" {
   database = snowflake_database.gov.name
   schema   = snowflake_schema.policies.name
   name     = "PROJ_ID_JOINABLE"
-  body     = "PROJECTION_CONSTRAINT(ALLOW => NOT IS_ROLE_IN_SESSION('MARKETING_ANALYST'))"
+  # ALLOW takes only a literal true/false, so branch with CASE. CREATE accepts an expression; queries then fail.
+  body = "CASE WHEN IS_ROLE_IN_SESSION('MARKETING_ANALYST') THEN PROJECTION_CONSTRAINT(ALLOW => false) ELSE PROJECTION_CONSTRAINT(ALLOW => true) END"
 }
 
 # ---- Identity and network policies ----

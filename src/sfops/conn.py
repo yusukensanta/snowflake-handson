@@ -5,6 +5,7 @@ import logging
 import os
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import snowflake.connector
 
@@ -39,7 +40,11 @@ def load_profile(name: str) -> dict[str, str]:
 
 def connect(connection_name: str, role: str | None = None) -> snowflake.connector.SnowflakeConnection:
     entry = _entry(connection_name)  # validates presence
-    kwargs: dict[str, str] = {"connection_name": connection_name}
+    # These tools run synchronous queries only, so always log out on close. Leaving it unset makes the connector warn.
+    kwargs: dict[str, Any] = {
+        "connection_name": connection_name,
+        "enable_server_session_keep_alive_auto_detection": False,
+    }
     key_file = str(entry.get("private_key_file", ""))
     if key_file.startswith("~"):
         # The connector does not expand "~" ("Could not read private key file"); do it here.

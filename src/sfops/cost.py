@@ -52,7 +52,7 @@ def format_report(rows: list[CostRow]) -> str:
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:  # pragma: no cover - live
+def main(argv: list[str] | None = None) -> int:
     import argparse
 
     from .conn import connect
@@ -60,7 +60,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - live
     p = argparse.ArgumentParser(prog="cost-report")
     p.add_argument("--connection", default="handson_tf")
     a = p.parse_args(argv)
-    rows = fetch_rows(connect(a.connection))
+    with connect(a.connection) as conn:
+        rows = fetch_rows(conn)
     print(format_report(rows))
     return 0 if evaluate(sum(r.credits for r in rows)) in (Status.OK, Status.WARN) else 2
 

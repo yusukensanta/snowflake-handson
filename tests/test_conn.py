@@ -38,7 +38,11 @@ def test_connect_passes_name_and_role(sf_home, monkeypatch):
     seen = {}
     monkeypatch.setattr(conn_mod.snowflake.connector, "connect", lambda **kw: seen.update(kw) or "C")
     assert connect("handson_tf", role="AUDITOR") == "C"
-    assert seen == {"connection_name": "handson_tf", "role": "AUDITOR"}
+    assert seen == {
+        "connection_name": "handson_tf",
+        "role": "AUDITOR",
+        "enable_server_session_keep_alive_auto_detection": False,
+    }
 
 
 def test_connect_never_logs_or_raises_secret(sf_home, monkeypatch, caplog):
