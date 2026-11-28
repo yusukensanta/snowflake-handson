@@ -1,6 +1,7 @@
 # Remote state so that local `plan` and CI `apply` share ONE state. Copy to backend.tf (git-ignored).
 # HCP Terraform free tier; set the workspace "Execution mode" to LOCAL (state storage only).
 # Organization and workspace come from TF_CLOUD_ORGANIZATION / TF_WORKSPACE, so nothing identifying is committed.
+# TF_WORKSPACE only selects an existing workspace; guide 08 step 1 creates it with a name in your local backend.tf.
 terraform {
   cloud {}
 }

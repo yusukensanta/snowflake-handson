@@ -36,7 +36,7 @@ scripts/apply-policies --execute                                             # s
 ```
 Then prove it with the access matrix (below).
 
-- Put `apply_column_tags = true` in `terraform.tfvars` rather than passing `-var` once: with a one-off `-var`, the next plain `plan` or `apply` (yours or the CI workflow's) sees the tags as unwanted and removes them. `tags.auto.tfvars.json` is git-ignored too, so CI needs it in `TFVARS_JSON` (guide 08).
+- Put `apply_column_tags = true` in `terraform.tfvars` rather than passing `-var` once: with a one-off `-var`, the next plain `plan` or `apply` (yours or the CI workflow's) sees the tags as unwanted and removes them. `terraform.tfvars` is git-ignored, so CI needs the flag in `TFVARS_JSON` (guide 08); the workflow generates `tags.auto.tfvars.json` itself.
 - **A clean `terraform plan` does not mean this guide is done.** Without the flag, Terraform plans no column tags at all.
 - If `apply-policies` once failed with "already has a AUTHENTICATION_POLICY": an earlier, failed Terraform apply had already attached `AP_SERVICE` to the `TERRAFORM` user (the provider could not read it back and reported an error). The script now uses `SET ... FORCE`, so re-running is safe.
 

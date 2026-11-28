@@ -36,7 +36,7 @@ scripts/apply-policies --execute                                             # �
 ```
 続いてアクセスマトリクス(下記)で検証します。
 
-- `-var` で一度だけ渡すのではなく、`terraform.tfvars` に `apply_column_tags = true` を書いてください。一度きりの `-var` だと、次の通常の `plan` / `apply`(自分でもCIでも)がタグを不要と判断して外してしまいます。`tags.auto.tfvars.json` も git 管理外なので、CI では `TFVARS_JSON` に入れる必要があります(ガイド 08)。
+- `-var` で一度だけ渡すのではなく、`terraform.tfvars` に `apply_column_tags = true` を書いてください。一度きりの `-var` だと、次の通常の `plan` / `apply`(自分でもCIでも)がタグを不要と判断して外してしまいます。`terraform.tfvars` は git 管理外なので、CI ではこのフラグを `TFVARS_JSON` に入れる必要があります(ガイド 08)。`tags.auto.tfvars.json` はワークフローが生成します。
 - **`terraform plan` に差分がなくても、このガイドが完了したとは限りません。** フラグがないと、Terraform は列タグをまったく計画しません。
 - `apply-policies` が「already has a AUTHENTICATION_POLICY」で失敗した場合: 以前の失敗した Terraform apply がすでに `AP_SERVICE` を `TERRAFORM` ユーザーに適用していました(プロバイダーが読み戻せず、エラーとして報告していました)。スクリプトは `SET ... FORCE` を使うようになったので、再実行しても安全です。
 
