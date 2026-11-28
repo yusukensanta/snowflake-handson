@@ -1,6 +1,8 @@
 import pytest
 from snowflake.connector.errors import OperationalError, ProgrammingError
 
+from sfops import conn as conn_mod
+from sfops import matrix as matrix_mod
 from sfops.matrix import Case, MatrixInfraError, load_matrix, run_matrix
 
 
@@ -141,3 +143,25 @@ def test_load_matrix_skips_stretch_unless_requested(tmp_path):
     )
     assert [c.role for c in load_matrix(f)] == ["A"]
     assert [c.role for c in load_matrix(f, include_stretch=True)] == ["A", "B"]
+
+
+def test_main_closes_the_connection_even_when_the_matrix_errors(monkeypatch, tmp_path):
+    state = {"closed": False}
+
+    class Closing(FakeConn):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            state["closed"] = True
+
+    def boom(conn, cases):
+        raise MatrixInfraError("network")
+
+    monkeypatch.setattr(conn_mod, "connect", lambda name: Closing({}))
+    monkeypatch.setattr(matrix_mod, "run_matrix", boom)
+    path = tmp_path / "m.yaml"
+    path.write_text("cases: []\n")
+    with pytest.raises(MatrixInfraError):
+        matrix_mod.main(["--matrix", str(path)])
+    assert state["closed"]

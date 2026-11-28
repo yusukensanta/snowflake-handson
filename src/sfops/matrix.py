@@ -117,7 +117,7 @@ def run_matrix(conn: Any, cases: list[Case]) -> list[Result]:
     return results
 
 
-def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs a live account
+def main(argv: list[str] | None = None) -> int:
     import argparse
 
     from .conn import connect
@@ -128,7 +128,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - needs a li
     p.add_argument("--stretch", action="store_true")
     a = p.parse_args(argv)
     cases = load_matrix(a.matrix, include_stretch=a.stretch)
-    results = run_matrix(connect(a.connection), cases)
+    with connect(a.connection) as conn:
+        results = run_matrix(conn, cases)
     for r in results:
         print(f"{'PASS' if r.passed else 'FAIL'}  {r.case.role:<24} {r.case.expect:<8} {r.case.object}"
               f"{'.' + r.case.column if r.case.column else ''}  {r.detail}")
